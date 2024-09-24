@@ -1,0 +1,5 @@
+app_name: demo_app
+team:
+    name: Sales
+    members:
+        - John Doe
