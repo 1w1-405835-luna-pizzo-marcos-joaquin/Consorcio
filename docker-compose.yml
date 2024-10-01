@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/dbexpense
+      SPRING_DATASOURCE_USERNAME: gastos
+      SPRING_DATASOURCE_PASSWORD: 123
+      APP_NAME: expenses-manager
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: dbexpense
+      MYSQL_USER: gastos
+      MYSQL_PASSWORD: 123
+      MYSQL_ROOT_PASSWORD: root_password
+      TZ: America/Argentina/Buenos_Aires #Zona horaria
+    volumes:
+      - ./dbscript:/docker-entrypoint-initdb.d
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+
+volumes:
+  mysql-data:
