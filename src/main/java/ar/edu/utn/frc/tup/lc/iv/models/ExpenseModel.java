@@ -22,7 +22,7 @@ public class ExpenseModel {
     private UUID fileId;
     private Integer invoiceNumber;
     private ExpenseType expenseType;
-    private Long categoryId;
+    private Integer categoryId;
     private BigDecimal amount;
     private Integer installments;
     private LocalDateTime createdDatetime;
