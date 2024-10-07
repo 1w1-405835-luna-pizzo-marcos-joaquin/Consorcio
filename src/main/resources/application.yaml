@@ -12,7 +12,7 @@ spring:
   application:
     name: expenses-manager
   datasource:
-    url: jdbc:mysql://db:3306/dbexpense
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/dbexpense}
     username: gastos
     password: 123
     driver-class-name: com.mysql.cj.jdbc.Driver
