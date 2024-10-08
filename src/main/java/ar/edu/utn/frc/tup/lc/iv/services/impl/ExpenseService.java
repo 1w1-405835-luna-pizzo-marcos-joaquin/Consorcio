@@ -1,13 +1,11 @@
 package ar.edu.utn.frc.tup.lc.iv.services.impl;
 
 import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
-import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoDistribution;
-import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoRequestExpense;
-import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoResponseExpense;
-import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoInstallment;
+import ar.edu.utn.frc.tup.lc.iv.dtos.common.*;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseCategoryEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseEntity;
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
+import ar.edu.utn.frc.tup.lc.iv.models.ExpenseCategoryModel;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseDistributionModel;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseInstallmentModel;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseModel;
@@ -20,12 +18,14 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ExpenseService implements IExpenseService {
@@ -43,7 +43,7 @@ public class ExpenseService implements IExpenseService {
     @Autowired
     private ExpenseCategoryService expenseCategoryService;
     @Override
-    public DtoResponseExpense postExpense(DtoRequestExpense request) {
+    public DtoResponseExpense postExpense(DtoRequestExpense request, MultipartFile multipartFile) {
 
         Boolean expenseExist = fetchValidExpenseModel(request);
         if(!expenseExist)
@@ -53,11 +53,10 @@ public class ExpenseService implements IExpenseService {
             List<ExpenseDistributionModel> expenseDistributionModels = setExpenseDistributionModels(request);
             expenseModel.setInstallmentsList(expenseInstallmentModels);
             expenseModel.setDistributions(expenseDistributionModels);
+            UUID imageId = null;
             DtoResponseExpense dtoResponseExpense = setDtoResponseExpense(expenseModel);
             ExpenseEntity expenseEntity = modelMapper.map(expenseModel, ExpenseEntity.class);
             return dtoResponseExpense;
-
-
 
         }
         {
@@ -73,8 +72,10 @@ public class ExpenseService implements IExpenseService {
         dtoResponseExpense.setExpenseDate(expenseModel.getExpenseDate());
         dtoResponseExpense.setExpenseType(expenseModel.getExpenseType());
         dtoResponseExpense.setDescription(expenseModel.getDescription());
-        //todo validar consulta service category
-        //dtoResponseExpense.setCategory();
+        DtoCategory dtoCategory = new DtoCategory();
+        dtoCategory.setId(expenseModel.getCategory().getId());
+        dtoCategory.setDescription(expenseModel.getCategory().getDescription());
+        dtoResponseExpense.setDtoCategory(dtoCategory);
         dtoResponseExpense.setInvoiceNumber(expenseModel.getInvoiceNumber());
         dtoResponseExpense.setProviderId(expenseModel.getProviderId());
         List<DtoInstallment> dtoInstallments = new ArrayList<>();
@@ -146,8 +147,8 @@ public class ExpenseService implements IExpenseService {
         expenseModel.setExpenseDate(request.getExpenseDate());
         expenseModel.setInvoiceNumber(request.getInvoiceNumber());
         expenseModel.setExpenseType(ExpenseType.valueOf(request.getTypeExpense()));
-        //todo consultar category al service by id
-        //expenseModel.setCategory();
+        ExpenseCategoryModel expenseCategoryModel = expenseCategoryService.getCategoryModel(request.getCategoryId());
+        expenseModel.setCategory(expenseCategoryModel);
         expenseModel.setAmount(request.getAmount());
         expenseModel.setInstallments(request.getInstallments());
         expenseModel.setCreatedDatetime(LocalDateTime.now());
@@ -165,8 +166,8 @@ public class ExpenseService implements IExpenseService {
         if (expenseEntityValidateExist.isPresent()) {
             throw new CustomException("The expense have already exist", HttpStatus.BAD_REQUEST);
         }
-        Optional<ExpenseCategoryEntity> expenseCategoryEntityExist = expenseCategoryRepository.findById(request.getCategoryId());
-        if (!expenseCategoryEntityExist.isEmpty()) { //seteado aproposito para q no consulte en la db ya q no hay inserts
+        ExpenseCategoryModel expenseCategoryModel = expenseCategoryService.getCategoryModel(request.getCategoryId());
+        if (expenseCategoryModel == null) {
             throw new CustomException("The category does not exist", HttpStatus.BAD_REQUEST);
         }
         return false;

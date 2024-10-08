@@ -18,7 +18,7 @@ public class DtoResponseExpense {
     private UUID fileId;
     private Integer invoiceNumber;
     private ExpenseType expenseType;
-    private ExpenseCategoryModel category;
+    private DtoCategory dtoCategory;
     private List<DtoDistribution> dtoDistributionList;
     private List<DtoInstallment> dtoInstallmentList;
 }

@@ -12,5 +12,4 @@ public class DtoInstallment {
     private Integer installmentNumber;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate paymentDate;
-    private ExpenseType expenseType;
 }
