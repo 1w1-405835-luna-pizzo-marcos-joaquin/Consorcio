@@ -37,6 +37,6 @@ public class BillRecordEntity {
     @Column(name = "enabled", nullable = false)
     private Boolean enabled;
 
-    @OneToMany(mappedBy = "billRecordEntity",cascade = CascadeType.ALL)
-    private List<BillExpenseOwnerEntity> billExpenseOwnerEntities;
+    @OneToMany(mappedBy = "billRecord",cascade = CascadeType.ALL)
+    private List<BillExpenseOwnerEntity> billExpenseOwner;
 }

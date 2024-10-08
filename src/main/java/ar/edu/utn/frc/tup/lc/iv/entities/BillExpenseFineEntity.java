@@ -14,13 +14,14 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "bills_expense_fines")
 public class BillExpenseFineEntity {
+    //TODO Aca deberia haber String description
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @ManyToOne
     @JoinColumn(name = "bill_expense_owner_id", nullable = false)
-    private BillExpenseOwnerEntity billExpenseOwnerEntity;
+    private BillExpenseOwnerEntity billExpenseOwner;
 
     @Column(name = "fine_id", nullable = false)
     private Integer fineId;

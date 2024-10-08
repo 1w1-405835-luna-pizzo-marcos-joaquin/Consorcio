@@ -20,7 +20,7 @@ public class BillExpenseOwnerEntity {
 
     @ManyToOne
     @JoinColumn(name = "bill_record_id", nullable = false)
-    private BillRecordEntity billRecordEntity;
+    private BillRecordEntity billRecord;
 
     @Column(name = "owner_id", nullable = false)
     private Integer ownerId;
@@ -42,9 +42,9 @@ public class BillExpenseOwnerEntity {
     @Column(name = "enabled", nullable = false)
     private Boolean enabled;
 
-    @OneToMany(mappedBy = "billExpenseOwnerEntity",cascade = CascadeType.ALL)
-    private List<BillExpenseFineEntity> billExpenseFineEntities;
-    @OneToMany(mappedBy = "billExpenseOwnerEntity",cascade = CascadeType.ALL)
-    private List<BillExpenseInstallmentsEntity> billExpenseInstallmentsEntities;
+    @OneToMany(mappedBy = "billExpenseOwner",cascade = CascadeType.ALL)
+    private List<BillExpenseFineEntity> billExpenseFines;
+    @OneToMany(mappedBy = "billExpenseOwner",cascade = CascadeType.ALL)
+    private List<BillExpenseInstallmentsEntity> billExpenseInstallments;
 
 }

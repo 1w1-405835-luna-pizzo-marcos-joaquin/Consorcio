@@ -20,7 +20,7 @@ public class BillExpenseInstallmentsEntity {
 
     @ManyToOne
     @JoinColumn(name = "bill_expense_owner_id", nullable = false)
-    private BillExpenseOwnerEntity billExpenseOwnerEntity;
+    private BillExpenseOwnerEntity billExpenseOwner;
     @ManyToOne
     @JoinColumn(name = "expense_installment_id", nullable = false)
     private ExpenseInstallmentEntity expenseInstallment;
