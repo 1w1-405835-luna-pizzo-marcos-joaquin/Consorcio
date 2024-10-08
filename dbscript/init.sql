@@ -1,3 +1,4 @@
+-- First, ensure the categories exist (this part seems correct in your script)
 INSERT INTO expense_categories (description, created_user, last_updated_user)
 SELECT * FROM (
                   SELECT 'Mantenimiento' AS description, 1 AS created_user, 1 AS last_updated_user UNION ALL
@@ -10,25 +11,30 @@ WHERE NOT EXISTS (
     SELECT 1 FROM expense_categories WHERE description = tmp.description
 ) LIMIT 5;
 
--- Insertar gastos de ejemplo si no existen
+-- Now, insert the expenses with appropriate category IDs
 INSERT INTO expenses (description, expense_date, expense_type, expense_category_id, amount, installments, created_user, last_updated_user)
-SELECT tmp.description, tmp.expense_date, tmp.expense_type, tmp.expense_category_id, tmp.amount, tmp.installments, tmp.created_user, tmp.last_updated_user
+SELECT
+    tmp.description,
+    tmp.expense_date,
+    tmp.expense_type,
+    COALESCE((SELECT id FROM expense_categories WHERE description = tmp.category), 1) AS expense_category_id,
+    tmp.amount,
+    tmp.installments,
+    tmp.created_user,
+    tmp.last_updated_user
 FROM (
-         SELECT 'Pintura de fachada' AS description, '2024-03-01' AS expense_date, 'Mantenimiento' AS expense_type,
-                (SELECT id FROM expense_categories WHERE description = 'Mantenimiento' LIMIT 1) AS expense_category_id,
-    5000.00 AS amount, 1 AS installments, 1 AS created_user, 1 AS last_updated_user
-UNION ALL
-SELECT 'Reparación ascensor', '2024-03-15', 'Reparación',
-       (SELECT id FROM expense_categories WHERE description = 'Reparaciones' LIMIT 1),
-           8000.00, 2, 1, 1
-UNION ALL
-SELECT 'Servicio de limpieza', '2024-04-01', 'Servicio',
-       (SELECT id FROM expense_categories WHERE description = 'Servicios' LIMIT 1),
-           3000.00, 1, 1, 1
-) AS tmp
+         SELECT 'Pintura de fachada' AS description, '2024-03-01' AS expense_date, 'COMUN' AS expense_type,
+                'Mantenimiento' AS category, 5000.00 AS amount, 1 AS installments, 1 AS created_user, 1 AS last_updated_user
+         UNION ALL
+         SELECT 'Reparación ascensor', '2024-03-15', 'EXTRAORDINARIA',
+                'Reparaciones', 8000.00, 2, 1, 1
+         UNION ALL
+         SELECT 'Servicio de limpieza', '2024-04-01', 'INDIVIDUAL',
+                'Servicios', 3000.00, 1, 1, 1
+     ) AS tmp
 WHERE NOT EXISTS (
     SELECT 1 FROM expenses WHERE description = tmp.description AND expense_date = tmp.expense_date
-    )
+)
     LIMIT 3;
 
 -- Insertar distribución de gastos si no existe
