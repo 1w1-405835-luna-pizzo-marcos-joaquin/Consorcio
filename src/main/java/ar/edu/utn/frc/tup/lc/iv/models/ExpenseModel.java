@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -22,7 +23,7 @@ public class ExpenseModel {
     private UUID fileId;
     private Integer invoiceNumber;
     private ExpenseType expenseType;
-    private Integer categoryId;
+    private ExpenseCategoryModel category;
     private BigDecimal amount;
     private Integer installments;
     private LocalDateTime createdDatetime;
@@ -30,4 +31,6 @@ public class ExpenseModel {
     private LocalDateTime lastUpdatedDatetime;
     private Integer lastUpdatedUser;
     private Boolean enabled;
+    private List<ExpenseDistributionModel> distributions;
+    private List<ExpenseInstallmentModel> installmentsList;
 }

@@ -16,5 +16,5 @@ public class DtoRequestExpense {
     private Integer categoryId;
     private BigDecimal amount;
     private Integer installments;
-    private List<DistributionDto> distributions;
+    private List<DtoDistribution> distributions;
 }

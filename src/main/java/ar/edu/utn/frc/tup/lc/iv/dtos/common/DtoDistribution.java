@@ -5,7 +5,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 @Data
-public class DistributionDto {
+public class DtoDistribution {
     private Integer ownerId;
     private BigDecimal proportion;
 }

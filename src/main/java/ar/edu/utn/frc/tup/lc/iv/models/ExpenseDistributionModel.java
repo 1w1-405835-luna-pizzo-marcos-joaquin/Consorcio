@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class ExpenseDistributionModel {
     private Integer id;
     private Integer ownerId;
-    private Integer expenseId;  // Asegúrate de que la clase ExpenseEntity esté definida
+    private ExpenseModel expenseModel;
     private BigDecimal proportion;
     private LocalDateTime createdDatetime;
     private Integer createdUser;
