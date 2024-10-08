@@ -1,6 +1,7 @@
 package ar.edu.utn.frc.tup.lc.iv.client;
 
 import ar.edu.utn.frc.tup.lc.iv.dtos.billExpense.OwnerPlotDto;
+import ar.edu.utn.frc.tup.lc.iv.dtos.owner.OwnerDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -14,8 +15,8 @@ public class OwnerRestClient {
         this.restTemplate = restTemplate;
     }
 
-    public ResponseEntity<OwnerPlotDto[]> getOwnerPlot() {
+    public ResponseEntity<OwnerDto[]> getOwnerPlot() {
         String url = ROOT_URL + "/ownerPlot";
-        return restTemplate.getForEntity(url, OwnerPlotDto[].class);
+        return restTemplate.getForEntity(url, OwnerDto[].class);
     }
 }

@@ -1,4 +1,4 @@
-package ar.edu.utn.frc.tup.lc.iv.dtos.billExpense;
+package ar.edu.utn.frc.tup.lc.iv.dtos.billExpense.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

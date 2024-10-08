@@ -11,13 +11,5 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OwnerPlotDto {
-    @JsonProperty("owner_id")
-    private Integer id;
-    @JsonProperty("field_size")
-    private Integer fieldSize;
-    @JsonProperty("fines")
-    private List<ItemDto> fines;
-    private List<ItemDto> expenses_common;
-    private List<ItemDto> expenses_extraordinary;
-    private List<ItemDto> expenses_individual;
+//TODO que va aca?
 }
