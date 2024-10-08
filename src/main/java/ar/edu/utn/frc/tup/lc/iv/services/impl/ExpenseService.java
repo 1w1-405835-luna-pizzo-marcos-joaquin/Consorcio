@@ -1,6 +1,5 @@
 package ar.edu.utn.frc.tup.lc.iv.services.impl;
 
-import ar.edu.utn.frc.tup.lc.iv.dtos.common.ExpenseQueryDto;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseEntity;
 import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseCategoryRepository;
 import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseDistributionRepository;
