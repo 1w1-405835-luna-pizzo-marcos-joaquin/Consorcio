@@ -69,7 +69,6 @@ public class ExpenseEntity {
     @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL)
     private List<ExpenseDistributionEntity> distributions;
 
-
     @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL)
     private List<ExpenseInstallmentEntity> installmentsList;
 
