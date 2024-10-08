@@ -1,9 +1,11 @@
 package ar.edu.utn.frc.tup.lc.iv.services.impl;
 
+import ar.edu.utn.frc.tup.lc.iv.comunication.FileServerRestClient;
 import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.*;
-import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseCategoryEntity;
+import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseDistributionEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseEntity;
+import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseInstallmentEntity;
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseCategoryModel;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseDistributionModel;
@@ -16,10 +18,13 @@ import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseRepository;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -42,8 +47,10 @@ public class ExpenseService implements IExpenseService {
     private ModelMapper modelMapper;
     @Autowired
     private ExpenseCategoryService expenseCategoryService;
+    @Autowired
+    private FileServerRestClient fileServerRestClient;
     @Override
-    public DtoResponseExpense postExpense(DtoRequestExpense request, MultipartFile multipartFile) {
+    public DtoResponseExpense postExpense(DtoRequestExpense request,MultipartFile file) {
 
         Boolean expenseExist = fetchValidExpenseModel(request);
         if(!expenseExist)
@@ -53,9 +60,10 @@ public class ExpenseService implements IExpenseService {
             List<ExpenseDistributionModel> expenseDistributionModels = setExpenseDistributionModels(request);
             expenseModel.setInstallmentsList(expenseInstallmentModels);
             expenseModel.setDistributions(expenseDistributionModels);
-            UUID imageId = null;
+            UUID fileId = UUID.randomUUID(); // remplazar por fileServerRestClient
+            expenseModel.setFileId(fileId);
             DtoResponseExpense dtoResponseExpense = setDtoResponseExpense(expenseModel);
-            ExpenseEntity expenseEntity = modelMapper.map(expenseModel, ExpenseEntity.class);
+            ExpenseEntity savedExpenseEntity = saveExpenseEntity(expenseModel, expenseInstallmentModels, expenseDistributionModels);
             return dtoResponseExpense;
 
         }
@@ -66,6 +74,26 @@ public class ExpenseService implements IExpenseService {
 
 
     }
+
+    private ExpenseEntity saveExpenseEntity(ExpenseModel expenseModel, List<ExpenseInstallmentModel> expenseInstallmentModels, List<ExpenseDistributionModel> expenseDistributionModels) {
+        ExpenseEntity expenseEntity = modelMapper.map(expenseModel, ExpenseEntity.class);
+        expenseEntity.setDistributions(new ArrayList<>());
+        expenseEntity.setInstallmentsList(new ArrayList<>());
+        for (ExpenseDistributionModel distributionModel : expenseDistributionModels) {
+            ExpenseDistributionEntity distributionEntity = modelMapper.map(distributionModel, ExpenseDistributionEntity.class);
+            distributionEntity.setExpense(expenseEntity);
+            expenseEntity.getDistributions().add(distributionEntity);
+        }
+
+        for (ExpenseInstallmentModel installmentModel : expenseInstallmentModels) {
+            ExpenseInstallmentEntity expenseInstallmentEntity = modelMapper.map(installmentModel, ExpenseInstallmentEntity.class);
+            expenseInstallmentEntity.setExpense(expenseEntity);
+            expenseEntity.getInstallmentsList().add(expenseInstallmentEntity);
+        }
+
+        return expenseRepository.save(expenseEntity);
+    }
+
 
     private DtoResponseExpense setDtoResponseExpense(ExpenseModel expenseModel) {
         DtoResponseExpense dtoResponseExpense = new DtoResponseExpense();
@@ -102,7 +130,7 @@ public class ExpenseService implements IExpenseService {
     private List<ExpenseInstallmentModel> setExpenseInstallmentModels(DtoRequestExpense request, ExpenseModel expenseModel) {
         //todo validaciones
         List<ExpenseInstallmentModel> expenseInstallmentModels = new ArrayList<>();
-        Integer installments = 1; // entiendo que es 1 porque es lo minimo, y el contador aumenta hasta la cantidad de installments de la request.
+        Integer installments = 1;
         do {
             ExpenseInstallmentModel expenseInstallmentModel = new ExpenseInstallmentModel();
             expenseInstallmentModel.setInstallmentNumber(installments);
@@ -110,18 +138,21 @@ public class ExpenseService implements IExpenseService {
             expenseInstallmentModel.setCreatedDatetime(LocalDateTime.now());
             expenseInstallmentModel.setCreatedUser(1);
             expenseInstallmentModel.setExpenseModel(expenseModel);
-            if(installments.equals(1)){
+            if (installments.equals(1)) {
                 expenseInstallmentModel.setPaymentDate(LocalDate.now());
-            }else{
-                expenseInstallmentModel.setPaymentDate(LocalDate.now().plusMonths(installments));
-            }//revisar el mes que se suma, se suma el numero de installments
-            // q en cada ciclo while aumenta, por lo tanto la cuota 2 se asigna 2 meses despues no uno
+            } else {
+                expenseInstallmentModel.setPaymentDate(LocalDate.now().plusMonths(installments - 1)); // al usar
+                // solo el valor de los installments y ir incrementandose en cada ciclo while los meses se sumaban de mas
+            }
+
             expenseInstallmentModel.setLastUpdatedDatetime(LocalDateTime.now());
             expenseInstallmentModel.setLastUpdatedUser(1);
             expenseInstallmentModels.add(expenseInstallmentModel);
             installments++;
-        }while (installments <= request.getInstallments());
+        } while (installments <= request.getInstallments());
+
         return expenseInstallmentModels;
+
     }
 
     private List<ExpenseDistributionModel> setExpenseDistributionModels(DtoRequestExpense request) {

@@ -7,5 +7,5 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public interface IExpenseService {
-    DtoResponseExpense postExpense(DtoRequestExpense request, MultipartFile file);
+    DtoResponseExpense postExpense(DtoRequestExpense request,MultipartFile file);
 }
