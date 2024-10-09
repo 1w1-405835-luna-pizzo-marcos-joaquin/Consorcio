@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BillExpenseFineModel extends AuditModel {
+    private Integer fineId;
     private String description;
     private BigDecimal amount;
 }

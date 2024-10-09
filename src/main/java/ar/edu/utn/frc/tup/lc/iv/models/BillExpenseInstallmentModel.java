@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BillExpenseInstallmentModel extends AuditModel{
+    private ExpenseInstallmentModel expenseInstallment;
     private String description;
     private BigDecimal amount;
 }
