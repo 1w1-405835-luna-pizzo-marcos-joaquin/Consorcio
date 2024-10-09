@@ -20,7 +20,7 @@ public class ExpenseDistributionController {
 
     @GetMapping("/filter")
     public ResponseEntity<List<ExpenseOwnerVisualizerDTO>> filterExpenseDistributions(
-            @RequestHeader(value = "ownerId", required = false)Integer ownerId,
+            @RequestHeader(value = "ownerId")Integer ownerId,
             @RequestParam(required = false) String description,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
