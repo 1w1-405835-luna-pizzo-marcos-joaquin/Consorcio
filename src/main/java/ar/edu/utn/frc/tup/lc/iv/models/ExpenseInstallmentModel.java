@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ExpenseInstallmentModel {
     private Integer id;
-    private Integer expenseId;  // Asegúrate de que la clase ExpenseEntity esté definida
+    private ExpenseModel expenseModel;
     private LocalDate paymentDate;
     private Integer installmentNumber;
     private LocalDateTime createdDatetime;
