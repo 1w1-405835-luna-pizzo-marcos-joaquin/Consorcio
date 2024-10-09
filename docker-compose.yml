@@ -6,7 +6,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/dbexpense
       SPRING_DATASOURCE_USERNAME: gastos
@@ -22,11 +23,14 @@ services:
       MYSQL_ROOT_PASSWORD: root_password
       TZ: America/Argentina/Buenos_Aires #Zona horaria
     volumes:
-      - ./dbscript:/docker-entrypoint-initdb.d
-      - mysql-data:/var/lib/mysql
+      - ./dbscript/db.sql:/docker-entrypoint-initdb.d/01-db.sql
+      - ./dbscript/init.sql:/docker-entrypoint-initdb.d/02-init.sql
+      - ./dbscript/trigers.sql:/docker-entrypoint-initdb.d/03-trigers.sql
+
     ports:
       - "3306:3306"
-
-
-volumes:
-  mysql-data:
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
