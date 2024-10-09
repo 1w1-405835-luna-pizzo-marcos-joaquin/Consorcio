@@ -1,7 +1,7 @@
 package ar.edu.utn.frc.tup.lc.iv.services.impl;
 
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.ExpenseCategoryDTO;
-import ar.edu.utn.frc.tup.lc.iv.dtos.common.ExpenseDTO;
+
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.ProviderDTO;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseCategoryEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseEntity;

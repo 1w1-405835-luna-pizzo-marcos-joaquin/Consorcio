@@ -1,5 +1,6 @@
 package ar.edu.utn.frc.tup.lc.iv.controllers;
 
+import ar.edu.utn.frc.tup.lc.iv.dtos.common.ExpenseOwnerVisualizerDTO;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseDistributionEntity;
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
 import ar.edu.utn.frc.tup.lc.iv.services.impl.ExpenseDistributionService;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -20,14 +22,20 @@ public class ExpenseDistributionController {
     private ExpenseDistributionService expenseDistributionService;
 
     @GetMapping("/filter")
-    public ResponseEntity<List<ExpenseDistributionEntity>> filterExpenseDistributions(
+    public ResponseEntity<List<ExpenseOwnerVisualizerDTO>> filterExpenseDistributions(
             @RequestParam(required = false) Integer ownerId,
-            @RequestParam(required = false)LocalDate startDate,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(required = false) ExpenseType expenseType,
-            @RequestParam (required = false)Integer categoryId) {
+            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) BigDecimal amountFrom,
+            @RequestParam(required = false) BigDecimal amountTo) {
 
-        List<ExpenseDistributionEntity> Ownerdistributions = expenseDistributionService.findByOwnerAndExpenseDateRangeAndTypeAndCategory(ownerId, startDate, endDate, expenseType, categoryId);
-        return ResponseEntity.ok(Ownerdistributions);
+
+        List<ExpenseOwnerVisualizerDTO> ownerDistributions = expenseDistributionService.findVisualizersByOwnerAndFilters(
+                ownerId, startDate, endDate, expenseType, categoryId, description, amountFrom, amountTo);
+
+        return ResponseEntity.ok(ownerDistributions);
     }
 }
