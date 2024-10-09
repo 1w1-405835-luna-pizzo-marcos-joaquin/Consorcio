@@ -1,9 +1,7 @@
 package ar.edu.utn.frc.tup.lc.iv.dtos.common;
 
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,6 +10,8 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 public class ExpenseOwnerVisualizerDTO {
     private Integer id;
     private String description;
