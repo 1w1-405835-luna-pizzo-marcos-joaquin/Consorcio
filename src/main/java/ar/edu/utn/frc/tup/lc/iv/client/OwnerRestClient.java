@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 @Service
 public class OwnerRestClient {
-    private RestTemplate restTemplate;
-    private static final String ROOT_URL = "http://localhost:8080/api/v1/sanctions";
+    private final RestTemplate restTemplate;
+    private static final String ROOT_URL = "";
     @Autowired
     public OwnerRestClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;

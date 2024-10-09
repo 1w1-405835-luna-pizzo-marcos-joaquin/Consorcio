@@ -11,8 +11,8 @@ import java.util.List;
 
 @Service
 public class SanctionRestClient {
-    private RestTemplate restTemplate;
-    private static final String ROOT_URL = "http://localhost:8080/api/v1/sanctions";
+    private final RestTemplate restTemplate;
+    private static final String ROOT_URL = "";
 
     @Autowired
     public SanctionRestClient(RestTemplate restTemplate) {
