@@ -6,10 +6,7 @@ import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
 import ar.edu.utn.frc.tup.lc.iv.services.impl.ExpenseDistributionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,7 +20,7 @@ public class ExpenseDistributionController {
 
     @GetMapping("/filter")
     public ResponseEntity<List<ExpenseOwnerVisualizerDTO>> filterExpenseDistributions(
-            @RequestParam(required = false) Integer ownerId,
+            @RequestHeader(value = "ownerId", required = false)Integer ownerId,
             @RequestParam(required = false) String description,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,

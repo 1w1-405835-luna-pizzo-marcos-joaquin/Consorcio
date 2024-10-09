@@ -24,4 +24,5 @@ public class ExpenseOwnerVisualizerDTO {
     private BigDecimal amount;
     private BigDecimal proportion;
     private Integer installments;
+    private Boolean enabled;
 }

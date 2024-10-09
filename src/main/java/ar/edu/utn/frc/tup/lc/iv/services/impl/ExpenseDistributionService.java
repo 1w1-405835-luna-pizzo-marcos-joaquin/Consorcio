@@ -18,16 +18,50 @@ import java.util.List;
 public class ExpenseDistributionService implements IExpenseDistributionService {
     @Autowired
     private ExpenseDistributionRepository repository;
-    
+
     public List<ExpenseOwnerVisualizerDTO> findVisualizersByOwnerAndFilters(
             Integer ownerId, LocalDate startDate, LocalDate endDate, ExpenseType expenseType,
             Integer categoryId, String description, BigDecimal amountFrom, BigDecimal amountTo) {
 
+        if (expenseType == ExpenseType.TODOS) {
+            return repository.findByOwnerAndExpenseDateRangeAndAllTypesAndCategory(
+                            ownerId, startDate, endDate, categoryId, description, amountFrom, amountTo)
+                    .stream()
+                    .map(ExpenseDistributionService::toDto)
+                    .toList();
+        }
 
+
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("El ID debe ser mayor que cero.");
+        }
+
+
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser posterior a la fecha de fin.");
+        }
+
+        if (amountFrom != null && amountFrom.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("El monto 'Desde' no puede ser negativo.");
+        }
+
+        if (amountTo != null && amountTo.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("El monto 'Hasta' no puede ser negativo.");
+        }
+
+        if (amountFrom != null && amountTo != null && amountFrom.compareTo(amountTo) > 0) {
+            throw new IllegalArgumentException("El monto 'Desde' no puede ser mayor que el monto 'Hasta'.");
+        }
+
+
+        //Call the Repository when the validations are OK
         List<ExpenseDistributionEntity> entities = repository.findByOwnerAndFilters(
                 ownerId, startDate, endDate, expenseType, categoryId, description, amountFrom, amountTo);
 
+        // Mapp the List
+        //Show the List where enable == true
         return entities.stream()
+                .filter(ExpenseDistributionEntity::getEnabled)
                 .map(ExpenseDistributionService::toDto)
                 .toList();
     }
@@ -63,6 +97,7 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
         dto.setAmount(entity.getExpense().getAmount());
         dto.setProportion(entity.getProportion());
         dto.setInstallments(entity.getExpense().getInstallments());
+        dto.setEnabled(entity.getEnabled());
 
         return dto;
     }
