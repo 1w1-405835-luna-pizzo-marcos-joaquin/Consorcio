@@ -9,4 +9,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public interface IExpenseService {
     ResponseEntity<DtoResponseExpense> postExpense(DtoRequestExpense request, MultipartFile file);
+
+    void deteleExpense(Integer id);
 }

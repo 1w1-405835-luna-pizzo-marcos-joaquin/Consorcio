@@ -12,4 +12,6 @@ import java.util.Optional;
 public interface ExpenseRepository extends JpaRepository<ExpenseEntity,Integer> {
 
     Optional<ExpenseEntity> findExpenseEntitiesByInvoiceNumberAndProviderId(Integer invoiceNumber,Integer providerId);
+
+
 }

@@ -16,6 +16,7 @@ import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseDistributionRepository;
 import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseInstallmentRepository;
 import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseRepository;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseService;
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -55,7 +56,7 @@ public class ExpenseService implements IExpenseService {
             List<ExpenseDistributionModel> expenseDistributionModels = setExpenseDistributionModels(request);
             expenseModel.setInstallmentsList(expenseInstallmentModels);
             expenseModel.setDistributions(expenseDistributionModels);
-            UUID fileId = UUID.randomUUID();
+            UUID fileId = UUID.randomUUID();//TODO FILE SERVER
             expenseModel.setFileId(fileId);
             DtoResponseExpense dtoResponseExpense = setDtoResponseExpense(expenseModel);
             saveExpenseEntity(expenseModel, expenseInstallmentModels, expenseDistributionModels);
@@ -66,7 +67,27 @@ public class ExpenseService implements IExpenseService {
 
     }
 
-    private void saveExpenseEntity(ExpenseModel expenseModel, List<ExpenseInstallmentModel> expenseInstallmentModels, List<ExpenseDistributionModel> expenseDistributionModels) {
+    public void deteleExpense(Integer id) {
+        Optional<ExpenseEntity> expenseEntity = expenseRepository.findById(id);
+        if(expenseEntity.isEmpty()){
+            throw new CustomException("The expense not exists",HttpStatus.BAD_REQUEST);
+        }
+        ExpenseEntity expenseEntityToSave = expenseEntity.get();
+        //Optional<BillRecordEntity> billRecordEntity
+        // = billRecordRepository.findByDate(expenseEntity.get().getCreatedDatetime()); TODO VALIDAR BILL RECORD
+        /*if(billRecordEntity.isEmpty())
+        {*/
+         expenseEntityToSave.setEnabled(Boolean.FALSE);
+         expenseRepository.save(expenseEntityToSave);
+        /*}
+        else{
+            // saco el size de installments desde expenseEntity
+          implementation of a credit note
+        }*/
+
+    }
+     @Transactional
+     protected void saveExpenseEntity(ExpenseModel expenseModel, List<ExpenseInstallmentModel> expenseInstallmentModels, List<ExpenseDistributionModel> expenseDistributionModels) {
         ExpenseEntity expenseEntity = modelMapper.map(expenseModel, ExpenseEntity.class);
         expenseEntity.setDistributions(new ArrayList<>());
         expenseEntity.setInstallmentsList(new ArrayList<>());
@@ -234,7 +255,7 @@ public class ExpenseService implements IExpenseService {
             throw new CustomException("Installments must be greater than zero", HttpStatus.BAD_REQUEST);
         }
 
-        if (request.getDistributions() == null || request.getDistributions().isEmpty()) {
+        if (request.getDistributions().isEmpty() && request.getTypeExpense().equals(ExpenseType.INDIVIDUAL.toString())) {
             throw new CustomException("Distributions cannot be empty", HttpStatus.BAD_REQUEST);
         }
         if (file != null) {

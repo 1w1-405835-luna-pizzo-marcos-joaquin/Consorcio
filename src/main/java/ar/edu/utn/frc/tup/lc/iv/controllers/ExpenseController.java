@@ -36,4 +36,12 @@ public class ExpenseController {
         return expenseService.postExpense(request, file);
     }
 
+    @Operation(summary = "Delete an expense")
+    @ApiResponse(responseCode = "204", description = "Expense deleted successfully")
+    @DeleteMapping()
+    public ResponseEntity<Void> deleteExpenseById(@RequestParam Integer id) {
+        expenseService.deteleExpense(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }
