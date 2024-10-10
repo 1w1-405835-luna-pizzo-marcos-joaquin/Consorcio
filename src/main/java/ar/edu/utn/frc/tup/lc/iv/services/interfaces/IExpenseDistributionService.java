@@ -9,9 +9,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-
+@Service
 public interface IExpenseDistributionService {
-    List<ExpenseOwnerVisualizerDTO> findVisualizersByOwnerAndFilters(
-            Integer ownerId, LocalDate startDate, LocalDate endDate, ExpenseType expenseType,
-            Integer categoryId, String description, BigDecimal amountFrom, BigDecimal amountTo);
+    List<ExpenseDistributionEntity> findAll();
+    List<ExpenseOwnerVisualizerDTO> filterExpenses(Integer ownerId, LocalDate startDate, LocalDate endDate, ExpenseType expenseType,
+                                                   Integer categoryId, String description, BigDecimal amountFrom, BigDecimal amountTo);
 }

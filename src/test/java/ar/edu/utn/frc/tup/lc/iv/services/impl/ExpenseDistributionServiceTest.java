@@ -12,18 +12,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
+import static org.mockito.Mockito.*;
 
 class ExpenseDistributionServiceTest {
 
@@ -34,110 +30,168 @@ class ExpenseDistributionServiceTest {
     private ExpenseDistributionRepository repository;
 
     private ExpenseDistributionEntity entity;
+    private ExpenseEntity expense;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this); // Inicializa los mocks
+        MockitoAnnotations.openMocks(this);
 
-        // Crea un ExpenseDistributionEntity de prueba
-        ExpenseEntity expense = new ExpenseEntity();
-        expense.setDescription("Descripción de prueba");
-        expense.setProviderId(1);
+        // Mock data
+        expense = new ExpenseEntity();
         expense.setExpenseDate(LocalDate.now());
-        expense.setFileId(UUID.fromString("02f5b2cb-2721-4152-b71f-39b8752f0abe"));
-        expense.setInvoiceNumber(Integer.valueOf("957"));
-        expense.setExpenseType(ExpenseType.TODOS);
-        expense.setAmount(BigDecimal.valueOf(100));
-        expense.setInstallments(1);
+        expense.setExpenseType(ExpenseType.INDIVIDUAL);
+        expense.setAmount(new BigDecimal("500"));
+        expense.setDescription("Test expense");
 
         entity = new ExpenseDistributionEntity();
-        entity.setId(1);
         entity.setExpense(expense);
-        entity.setProportion(BigDecimal.valueOf(1));
-        entity.setEnabled(true);
+        entity.setOwnerId(1);
     }
 
     @Test
-    void findVisualizersByOwnerAndFilters_ValidParams() {
-        List<ExpenseDistributionEntity> entities = new ArrayList<>();
-        entities.add(entity);
+    void testFindAll() {
+        // Given
+        when(repository.findAllDistinct()).thenReturn(Arrays.asList(entity));
 
-        when(repository.findByOwnerAndFilters(any(), any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(entities);
+        // When
+        List<ExpenseDistributionEntity> result = service.findAll();
 
-        List<ExpenseOwnerVisualizerDTO> result = service.findVisualizersByOwnerAndFilters(
-                1, LocalDate.now(), LocalDate.now(), ExpenseType.TODOS, null, null, null, null
-        );
-
+        // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        ExpenseOwnerVisualizerDTO dto = result.get(0);
-        assertEquals(entity.getId(), dto.getId());
-        assertEquals(entity.getExpense().getDescription(), dto.getDescription());
+        verify(repository, times(1)).findAllDistinct();
     }
 
     @Test
-    void findVisualizersByOwnerAndFilters_OwnerIdInvalid() {
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            service.findVisualizersByOwnerAndFilters(-1, LocalDate.now(), LocalDate.now(), ExpenseType.TODOS, null, null, null, null);
+    void testFilterExpenses_AllFilters() {
+        // Given
+        when(repository.findAllDistinct()).thenReturn(Arrays.asList(entity));
+
+        // When
+        List<ExpenseOwnerVisualizerDTO> result = service.filterExpenses(
+                1, LocalDate.now().minusDays(1), LocalDate.now().plusDays(1),
+                ExpenseType.INDIVIDUAL, null, "Test", new BigDecimal("400"), new BigDecimal("600"));
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(repository, times(1)).findAllDistinct();
+    }
+
+    @Test
+    void testFilterExpenses_InvalidOwnerId() {
+        // When/Then
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+            service.filterExpenses(-1, LocalDate.now(), LocalDate.now(), ExpenseType.INDIVIDUAL, null, null, null, null);
         });
-
-        assertEquals("El ID debe ser mayor que cero.", exception.getMessage());
+        assertEquals("El ID debe ser mayor que cero.", thrown.getMessage());
     }
 
-
+    @Test
+    void testFilterExpenses_StartDateAfterEndDate() {
+        // When/Then
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+            service.filterExpenses(1, LocalDate.now().plusDays(1), LocalDate.now(), null, null, null, null, null);
+        });
+        assertEquals("La fecha de inicio no puede ser posterior a la fecha de fin.", thrown.getMessage());
+    }
 
     @Test
-    void toDto_ExpenseCategoryEntity() {
-        ExpenseCategoryDTO dto = ExpenseDistributionService.toDto((ExpenseCategoryEntity) null);
-        assertNull(dto);
+    void testFilterExpenses_NegativeAmountFrom() {
+        // When/Then
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+            service.filterExpenses(1, LocalDate.now(), LocalDate.now(), null, null, null, new BigDecimal("-100"), null);
+        });
+        assertEquals("El monto 'Desde' no puede ser negativo.", thrown.getMessage());
+    }
 
-        ExpenseCategoryEntity entity = new ExpenseCategoryEntity();
-        entity.setId(1);
-        entity.setDescription("Categoría de prueba");
+    @Test
+    void testFilterExpenses_AmountFromGreaterThanAmountTo() {
+        // When/Then
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+            service.filterExpenses(1, LocalDate.now(), LocalDate.now(), null, null, null, new BigDecimal("600"), new BigDecimal("500"));
+        });
+        assertEquals("El monto 'Desde' no puede ser mayor que el monto 'Hasta'.", thrown.getMessage());
+    }
 
-        dto = ExpenseDistributionService.toDto(entity);
-        assertNotNull(dto);
-        assertEquals(1, dto.getId());
-        assertEquals("Categoría de prueba", dto.getDescription());
+    @Test
+    void testFilterExpenses_ValidAmountRange() {
+        // Given
+        when(repository.findAllDistinct()).thenReturn(Arrays.asList(entity));
+
+        // When
+        List<ExpenseOwnerVisualizerDTO> result = service.filterExpenses(1, LocalDate.now(), LocalDate.now(), null, null, null, new BigDecimal("400"), new BigDecimal("600"));
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
     }
 
     @Test
     void testToDto_NullEntity() {
-        ExpenseOwnerVisualizerDTO dto = ExpenseDistributionService.toDto((ExpenseDistributionEntity) null);
-        assertNull(dto);
+        // When
+        ExpenseCategoryDTO result = ExpenseDistributionService.toDto(null);
+
+        // Then
+        assertNull(result);
     }
 
     @Test
     void testToDto_ValidEntity() {
-        ExpenseEntity expense = new ExpenseEntity();
-        expense.setDescription("Descripción de prueba");
-        expense.setProviderId(1);
-        expense.setExpenseDate(LocalDate.now());
-        expense.setFileId(UUID.fromString("02f5b2cb-2721-4152-b71f-39b8752f0abe"));
-        expense.setInvoiceNumber(Integer.valueOf("123456"));
-        expense.setExpenseType(ExpenseType.TODOS);
-        expense.setAmount(BigDecimal.valueOf(100));
-        expense.setInstallments(1);
+        // Given
+        ExpenseCategoryEntity category = new ExpenseCategoryEntity();
+        category.setId(1);
+        category.setDescription("Category");
 
-        ExpenseDistributionEntity entity = new ExpenseDistributionEntity();
-        entity.setId(1);
-        entity.setExpense(expense);
-        entity.setProportion(BigDecimal.valueOf(1));
-        entity.setEnabled(true);
+        // When
+        ExpenseCategoryDTO result = ExpenseDistributionService.toDto(category);
 
-        ExpenseOwnerVisualizerDTO dto = ExpenseDistributionService.toDto(entity);
-        assertNotNull(dto);
-        assertEquals(entity.getId(), dto.getId());
-        assertEquals(expense.getDescription(), dto.getDescription());
-        assertEquals(expense.getProviderId(), dto.getProviderId());
-        assertEquals(expense.getExpenseDate(), dto.getExpenseDate());
-        assertEquals(expense.getFileId(), dto.getFileId());
-        assertEquals(expense.getInvoiceNumber(), dto.getInvoiceNumber());
-        assertEquals(expense.getExpenseType(), dto.getExpenseType());
-        assertEquals(expense.getAmount(), dto.getAmount());
-        assertEquals(entity.getProportion(), dto.getProportion());
-        assertEquals(expense.getInstallments(), dto.getInstallments());
-        assertTrue(dto.getEnabled());
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getId());
+        assertEquals("Category", result.getDescription());
+    }
+
+    @Test
+    void testEntityDistributionToDto_NullEntity() {
+        // When
+        ExpenseOwnerVisualizerDTO result = service.entityDistributiontoDto(null);
+
+        // Then
+        assertNull(result);
+    }
+
+    @Test
+    void testEntityDistributionToDto_ValidEntity() {
+        // When
+        ExpenseOwnerVisualizerDTO result = service.entityDistributiontoDto(entity);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("Test expense", result.getDescription());
+        assertEquals(ExpenseType.INDIVIDUAL, result.getExpenseType());
+    }
+    @Test
+    void testFilterExpenses_EmptyResults() {
+        // Given
+        when(repository.findAllDistinct()).thenReturn(Arrays.asList());
+
+        // When
+        List<ExpenseOwnerVisualizerDTO> result = service.filterExpenses(
+                1, LocalDate.now().minusDays(1), LocalDate.now().plusDays(1),
+                ExpenseType.INDIVIDUAL, null, "Test", new BigDecimal("400"), new BigDecimal("600"));
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(repository, times(1)).findAllDistinct();
+    }
+    @Test
+    void testFilterExpenses_AmountToNegative() {
+        // When/Then
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+            service.filterExpenses(1, LocalDate.now(), LocalDate.now(), null, null, null, null, new BigDecimal("-100"));
+        });
+        assertEquals("El monto 'Hasta' no puede ser negativo.", thrown.getMessage());
     }
 }

@@ -4,8 +4,10 @@ import ar.edu.utn.frc.tup.lc.iv.dtos.common.ExpenseCategoryDTO;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.ExpenseOwnerVisualizerDTO;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseCategoryEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseDistributionEntity;
+import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseEntity;
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
 import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseDistributionRepository;
+import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseRepository;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseDistributionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,23 +15,23 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ExpenseDistributionService implements IExpenseDistributionService {
     @Autowired
     private ExpenseDistributionRepository repository;
 
-    public List<ExpenseOwnerVisualizerDTO> findVisualizersByOwnerAndFilters(
-            Integer ownerId, LocalDate startDate, LocalDate endDate, ExpenseType expenseType,
-            Integer categoryId, String description, BigDecimal amountFrom, BigDecimal amountTo) {
 
-        if (expenseType == ExpenseType.TODOS) {
-            return repository.findByOwnerAndExpenseDateRangeAndAllTypesAndCategory(
-                            ownerId, startDate, endDate, categoryId, description, amountFrom, amountTo)
-                    .stream()
-                    .map(ExpenseDistributionService::toDto)
-                    .toList();
-        }
+
+    public List<ExpenseDistributionEntity> findAll(){
+        List<ExpenseDistributionEntity> getAllDistribution = repository.findAllDistinct();
+        return getAllDistribution;
+    }
+
+    @Override
+    public List<ExpenseOwnerVisualizerDTO> filterExpenses(Integer ownerId, LocalDate startDate, LocalDate endDate, ExpenseType expenseType,
+          Integer categoryId, String description, BigDecimal amountFrom, BigDecimal amountTo){
 
 
         if (ownerId <= 0) {
@@ -52,19 +54,34 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
         if (amountFrom != null && amountTo != null && amountFrom.compareTo(amountTo) > 0) {
             throw new IllegalArgumentException("El monto 'Desde' no puede ser mayor que el monto 'Hasta'.");
         }
+        List<ExpenseDistributionEntity> getAllDistribution = repository.findAllDistinct();
 
 
-        //Call the Repository when the validations are OK
-        List<ExpenseDistributionEntity> entities = repository.findByOwnerAndFilters(
-                ownerId, startDate, endDate, expenseType, categoryId, description, amountFrom, amountTo);
+        return getAllDistribution.stream()
+                // Filtrer for ownerId
+                .filter(entity -> ownerId == null || ownerId.equals(entity.getOwnerId()))
+                // Filtrer for startDate
+                .filter(entity -> startDate == null || !entity.getExpense().getExpenseDate().isBefore(startDate))
+                // Filtrer for endDate
+                .filter(entity -> endDate == null || !entity.getExpense().getExpenseDate().isAfter(endDate))
+                // Filtrer for expenseType
+                .filter(entity -> expenseType == null || expenseType.equals(entity.getExpense().getExpenseType()))
+                // Filtrer for categoryId
+                .filter(entity -> categoryId == null || (entity.getExpense().getCategory() != null && categoryId.equals(entity.getExpense().getCategory().getId())))
+                // Filtrer for description
+                .filter(entity -> description == null || entity.getExpense().getDescription().toLowerCase().contains(description.toLowerCase()))
+                // Filtrer for amountFrom
+                .filter(entity -> amountFrom == null || entity.getExpense().getAmount().compareTo(amountFrom) >= 0)
+                // Filtrer for amountTo
+                .filter(entity -> amountTo == null || entity.getExpense().getAmount().compareTo(amountTo) <= 0)
+                // Convert entity in DTO
+                .map(this::entityDistributiontoDto)
+                // ollect the results in a list
+                .collect(Collectors.toList());
 
-        // Mapp the List
-        //Show the List where enable == true
-        return entities.stream()
-                .filter(ExpenseDistributionEntity::getEnabled)
-                .map(ExpenseDistributionService::toDto)
-                .toList();
+
     }
+
 
     //Mapper  expenseCategory TO expenseCategoryDTO
 
@@ -80,7 +97,7 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
 
     //MAPPER ENTITY TO EXPENSEOWNERVISUALIZERDTO
 
-    public static ExpenseOwnerVisualizerDTO toDto(ExpenseDistributionEntity entity) {
+    public ExpenseOwnerVisualizerDTO entityDistributiontoDto(ExpenseDistributionEntity entity) {
         if (entity == null || entity.getExpense() == null) {
             return null;
         }
@@ -101,5 +118,6 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
 
         return dto;
     }
+
 
 }
