@@ -66,6 +66,16 @@ public class ExpenseService implements IExpenseService {
 
     }
 
+    @Override
+    public List<ExpenseModel> getExpenseByPaymentDateRange(LocalDate from, LocalDate to) {
+        List<ExpenseEntity> expenseEntities = expenseRepository.findAllByPaymentDate(from,to);
+        List<ExpenseModel> result = new ArrayList<>();
+        for (ExpenseEntity expenseEntity : expenseEntities) {
+            result.add(exepnseEntityToModel(expenseEntity));
+        }
+        return result;
+    }
+
     private void saveExpenseEntity(ExpenseModel expenseModel, List<ExpenseInstallmentModel> expenseInstallmentModels, List<ExpenseDistributionModel> expenseDistributionModels) {
         ExpenseEntity expenseEntity = modelMapper.map(expenseModel, ExpenseEntity.class);
         expenseEntity.setDistributions(new ArrayList<>());
@@ -247,4 +257,26 @@ public class ExpenseService implements IExpenseService {
     }
 
 
+    private ExpenseModel exepnseEntityToModel(ExpenseEntity expenseEntity) {
+        ExpenseModel expenseModel = new ExpenseModel();
+        expenseModel = modelMapper.map(expenseEntity, ExpenseModel.class);
+        expenseModel.setDistributions(new ArrayList<>());
+        expenseModel.setInstallmentsList(new ArrayList<>());
+
+        for (ExpenseInstallmentEntity installment : expenseEntity.getInstallmentsList()) {
+            expenseModel.getInstallmentsList().add(installmentEntityToModel(installment));
+        }
+        for (ExpenseDistributionEntity distribution : expenseEntity.getDistributions()) {
+            expenseModel.getDistributions().add(distributionEntityToModel(distribution));
+        }
+        return expenseModel;
+    }
+    private ExpenseInstallmentModel installmentEntityToModel(ExpenseInstallmentEntity expenseInstallmentEntity) {
+        ExpenseInstallmentModel installmentModel = modelMapper.map(expenseInstallmentEntity, ExpenseInstallmentModel.class);
+        return installmentModel;
+    }
+    private ExpenseDistributionModel distributionEntityToModel(ExpenseDistributionEntity expenseDistributionEntity) {
+        ExpenseDistributionModel distributionModel = modelMapper.map(expenseDistributionEntity, ExpenseDistributionModel.class);
+        return distributionModel;
+    }
 }

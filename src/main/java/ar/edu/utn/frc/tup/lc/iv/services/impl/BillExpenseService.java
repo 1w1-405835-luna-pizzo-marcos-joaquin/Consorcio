@@ -18,6 +18,7 @@ import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
 import ar.edu.utn.frc.tup.lc.iv.models.*;
 import ar.edu.utn.frc.tup.lc.iv.repositories.BillRecordRepository;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IBillExpenseService;
+import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -36,14 +37,17 @@ public class BillExpenseService implements IBillExpenseService {
     private final ModelMapper modelMapper;
     private final OwnerRestClient ownerRestClient;
     private final SanctionRestClient sanctionRestClient;
+    private final IExpenseService expenseService;
 
     @Autowired
     public BillExpenseService(BillRecordRepository billRecordRepository, ModelMapper modelMapper,
-                              OwnerRestClient ownerRestClient, SanctionRestClient sanctionRestClient) {
+                              OwnerRestClient ownerRestClient, SanctionRestClient sanctionRestClient,
+                              IExpenseService expenseService) {
         this.billRecordRepository = billRecordRepository;
         this.modelMapper = modelMapper;
         this.ownerRestClient = ownerRestClient;
         this.sanctionRestClient = sanctionRestClient;
+        this.expenseService = expenseService;
     }
 
     /**
@@ -127,8 +131,7 @@ public class BillExpenseService implements IBillExpenseService {
      * @return List of {@link ExpenseModel} with applicable expenses.
      */
     private List<ExpenseModel> getExpenses(PeriodDto periodDto) {
-        // TODO: Implement logic to retrieve expenses from the database or another service
-        return new ArrayList<ExpenseModel>();
+        return expenseService.getExpenseByPaymentDateRange(periodDto.getStartDate(), periodDto.getEndDate());
     }
 
     /**
