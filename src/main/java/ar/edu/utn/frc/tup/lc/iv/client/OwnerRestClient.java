@@ -1,6 +1,6 @@
 package ar.edu.utn.frc.tup.lc.iv.client;
 
-import ar.edu.utn.frc.tup.lc.iv.dtos.billExpense.OwnerPlotDto;
+
 import ar.edu.utn.frc.tup.lc.iv.dtos.owner.OwnerDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
