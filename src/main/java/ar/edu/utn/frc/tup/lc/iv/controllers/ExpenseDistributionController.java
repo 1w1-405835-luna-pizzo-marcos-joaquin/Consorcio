@@ -28,8 +28,8 @@ public class ExpenseDistributionController {
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ExpenseDistributionEntity.class)))
     @GetMapping("/getAll")
-    public ResponseEntity<List<ExpenseDistributionEntity>> getAllExpenses(){
-        List<ExpenseDistributionEntity> list = expenseDistributionService.findAll();
+    public ResponseEntity<List<ExpenseOwnerVisualizerDTO>> getAllExpenses(){
+        List<ExpenseOwnerVisualizerDTO> list = expenseDistributionService.findAll();
         return ResponseEntity.ok(list);
     }
 

@@ -36,15 +36,15 @@ class ExpenseDistributionControllerTest {
     @Test
     void testGetAllExpenses() {
         // Datos de prueba
-        ExpenseDistributionEntity entity1 = new ExpenseDistributionEntity();
-        ExpenseDistributionEntity entity2 = new ExpenseDistributionEntity();
-        List<ExpenseDistributionEntity> mockExpenseList = Arrays.asList(entity1, entity2);
+        ExpenseOwnerVisualizerDTO entity1 = new ExpenseOwnerVisualizerDTO();
+        ExpenseOwnerVisualizerDTO entity2 = new ExpenseOwnerVisualizerDTO();
+        List<ExpenseOwnerVisualizerDTO> mockExpenseList = Arrays.asList(entity1, entity2);
 
         // Simulamos el comportamiento del servicio
         when(expenseDistributionService.findAll()).thenReturn(mockExpenseList);
 
         // Llamamos al controlador
-        ResponseEntity<List<ExpenseDistributionEntity>> response = expenseDistributionController.getAllExpenses();
+        ResponseEntity<List<ExpenseOwnerVisualizerDTO>> response = expenseDistributionController.getAllExpenses();
 
         // Verificamos que el servicio fue llamado
         verify(expenseDistributionService, times(1)).findAll();

@@ -54,7 +54,7 @@ class ExpenseDistributionServiceTest {
         when(repository.findAllDistinct()).thenReturn(Arrays.asList(entity));
 
         // When
-        List<ExpenseDistributionEntity> result = service.findAll();
+        List<ExpenseOwnerVisualizerDTO> result = service.findAll();
 
         // Then
         assertNotNull(result);

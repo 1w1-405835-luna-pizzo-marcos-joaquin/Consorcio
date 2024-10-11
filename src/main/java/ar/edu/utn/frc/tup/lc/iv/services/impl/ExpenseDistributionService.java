@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,9 +25,14 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
 
 
 
-    public List<ExpenseDistributionEntity> findAll(){
+    public List<ExpenseOwnerVisualizerDTO> findAll(){
         List<ExpenseDistributionEntity> getAllDistribution = repository.findAllDistinct();
-        return getAllDistribution;
+        List<ExpenseOwnerVisualizerDTO> expenseOwnerVisualizerDTOList = new ArrayList<>();
+        for (ExpenseDistributionEntity entity: getAllDistribution){
+            ExpenseOwnerVisualizerDTO dto = entityDistributiontoDto(entity);
+            expenseOwnerVisualizerDTOList.add(dto);
+        }
+        return expenseOwnerVisualizerDTOList;
     }
 
     @Override
