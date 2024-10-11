@@ -19,14 +19,12 @@ import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -39,7 +37,7 @@ import java.util.*;
 public class ExpenseService implements IExpenseService {
 
     @Autowired
-    private  ExpenseRepository expenseRepository;
+    private ExpenseRepository expenseRepository;
     @Autowired
     private ExpenseDistributionRepository expenseDistributionRepository;
     @Autowired
@@ -56,49 +54,52 @@ public class ExpenseService implements IExpenseService {
     private ObjectMapper objectMapper;
     @Autowired
     private RestTemplate restTemplate;
-    @Override
-    public DtoResponseExpense postExpense(DtoRequestExpense request,MultipartFile file) {
 
-        Boolean expenseExist = fetchValidExpenseModel(request);
-        if(!expenseExist)
-        {
+
+    @Override
+    public ResponseEntity<DtoResponseExpense> postExpense(DtoRequestExpense request, MultipartFile file) {
+        Boolean expenseValid = fetchValidExpenseModel(request, file);
+        if (expenseValid) {
             ExpenseModel expenseModel = setDataToExpenseModel(request);
-            List<ExpenseInstallmentModel> expenseInstallmentModels = setExpenseInstallmentModels(request,expenseModel);
+            List<ExpenseInstallmentModel> expenseInstallmentModels = setExpenseInstallmentModels(request, expenseModel);
             List<ExpenseDistributionModel> expenseDistributionModels = setExpenseDistributionModels(request);
             expenseModel.setInstallmentsList(expenseInstallmentModels);
             expenseModel.setDistributions(expenseDistributionModels);
-            UUID fileId = UUID.randomUUID(); // remplazar por fileServerRestClient
+            UUID fileId = UUID.randomUUID();
             expenseModel.setFileId(fileId);
             DtoResponseExpense dtoResponseExpense = setDtoResponseExpense(expenseModel);
-            ExpenseEntity savedExpenseEntity = saveExpenseEntity(expenseModel, expenseInstallmentModels, expenseDistributionModels);
-            return dtoResponseExpense;
-
-        }
-        {
+            saveExpenseEntity(expenseModel, expenseInstallmentModels, expenseDistributionModels);
+            return ResponseEntity.ok(dtoResponseExpense);
+        } else {
             throw new CustomException("The expense is not valid", HttpStatus.CONFLICT);
         }
 
-
-
     }
 
-    private ExpenseEntity saveExpenseEntity(ExpenseModel expenseModel, List<ExpenseInstallmentModel> expenseInstallmentModels, List<ExpenseDistributionModel> expenseDistributionModels) {
+    private void saveExpenseEntity(ExpenseModel expenseModel, List<ExpenseInstallmentModel> expenseInstallmentModels, List<ExpenseDistributionModel> expenseDistributionModels) {
         ExpenseEntity expenseEntity = modelMapper.map(expenseModel, ExpenseEntity.class);
         expenseEntity.setDistributions(new ArrayList<>());
         expenseEntity.setInstallmentsList(new ArrayList<>());
+
+        if (expenseEntity.getAmount() == null || expenseEntity.getCategory() == null) {
+            throw new CustomException("Missing required fields in ExpenseEntity", HttpStatus.BAD_REQUEST);
+        }
+        expenseEntity = expenseRepository.save(expenseEntity);
+
         for (ExpenseDistributionModel distributionModel : expenseDistributionModels) {
             ExpenseDistributionEntity distributionEntity = modelMapper.map(distributionModel, ExpenseDistributionEntity.class);
             distributionEntity.setExpense(expenseEntity);
+            expenseDistributionRepository.save(distributionEntity);
             expenseEntity.getDistributions().add(distributionEntity);
         }
 
         for (ExpenseInstallmentModel installmentModel : expenseInstallmentModels) {
             ExpenseInstallmentEntity expenseInstallmentEntity = modelMapper.map(installmentModel, ExpenseInstallmentEntity.class);
             expenseInstallmentEntity.setExpense(expenseEntity);
+            expenseInstallmentRepository.save(expenseInstallmentEntity);
             expenseEntity.getInstallmentsList().add(expenseInstallmentEntity);
         }
 
-        return expenseRepository.save(expenseEntity);
     }
 
 
@@ -135,7 +136,6 @@ public class ExpenseService implements IExpenseService {
     }
 
     private List<ExpenseInstallmentModel> setExpenseInstallmentModels(DtoRequestExpense request, ExpenseModel expenseModel) {
-        //todo validaciones
         List<ExpenseInstallmentModel> expenseInstallmentModels = new ArrayList<>();
         Integer installments = 1;
         do {
@@ -148,8 +148,7 @@ public class ExpenseService implements IExpenseService {
             if (installments.equals(1)) {
                 expenseInstallmentModel.setPaymentDate(LocalDate.now());
             } else {
-                expenseInstallmentModel.setPaymentDate(LocalDate.now().plusMonths(installments - 1)); // al usar
-                // solo el valor de los installments y ir incrementandose en cada ciclo while los meses se sumaban de mas
+                expenseInstallmentModel.setPaymentDate(LocalDate.now().plusMonths(installments - 1));
             }
 
             expenseInstallmentModel.setLastUpdatedDatetime(LocalDateTime.now());
@@ -163,8 +162,14 @@ public class ExpenseService implements IExpenseService {
     }
 
     private List<ExpenseDistributionModel> setExpenseDistributionModels(DtoRequestExpense request) {
-         List<ExpenseDistributionModel> expenseDistributionModels = new ArrayList<>();
+        List<ExpenseDistributionModel> expenseDistributionModels = new ArrayList<>();
+        BigDecimal totalProportion = BigDecimal.ZERO;
+
         for (DtoDistribution dtoDistribution : request.getDistributions()) {
+            totalProportion = totalProportion.add(dtoDistribution.getProportion());
+            if (totalProportion.compareTo(new BigDecimal("10.00")) > 0 || totalProportion.compareTo(new BigDecimal("-10.00")) < 0) {
+                throw new IllegalArgumentException("the sum of distributions can't be less or more than 10.00");
+            }
             ExpenseDistributionModel expenseDistributionModel = new ExpenseDistributionModel();
             expenseDistributionModel.setEnabled(Boolean.TRUE);
             expenseDistributionModel.setCreatedUser(1);
@@ -175,6 +180,7 @@ public class ExpenseService implements IExpenseService {
             expenseDistributionModel.setProportion(dtoDistribution.getProportion());
             expenseDistributionModels.add(expenseDistributionModel);
         }
+
         return expenseDistributionModels;
     }
 
@@ -191,15 +197,14 @@ public class ExpenseService implements IExpenseService {
         expenseModel.setInstallments(request.getInstallments());
         expenseModel.setCreatedDatetime(LocalDateTime.now());
         expenseModel.setLastUpdatedDatetime(LocalDateTime.now());
-        expenseModel.setCreatedUser(1);
+        expenseModel.setCreatedUser(1);//the user must be receipted from the frontend
         expenseModel.setLastUpdatedUser(1);
         expenseModel.setEnabled(Boolean.TRUE);
         return expenseModel;
 
     }
 
-    private Boolean fetchValidExpenseModel(DtoRequestExpense request) {
-
+    private Boolean fetchValidExpenseModel(DtoRequestExpense request,MultipartFile file) {
         Optional<ExpenseEntity> expenseEntityValidateExist =  expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(request.getInvoiceNumber(), request.getProviderId());
         if (expenseEntityValidateExist.isPresent()) {
             throw new CustomException("The expense have already exist", HttpStatus.BAD_REQUEST);
@@ -208,7 +213,47 @@ public class ExpenseService implements IExpenseService {
         if (expenseCategoryModel == null) {
             throw new CustomException("The category does not exist", HttpStatus.BAD_REQUEST);
         }
-        return false;
+        if (request.getDescription() == null || request.getDescription().isEmpty()) {
+            throw new CustomException("Description cannot be empty", HttpStatus.BAD_REQUEST);
+        }
+
+        if (request.getProviderId() == null) {
+            throw new CustomException("Provider ID cannot be null", HttpStatus.BAD_REQUEST);
+        }
+
+        if (request.getExpenseDate() == null) {
+            throw new CustomException("Expense date cannot be null", HttpStatus.BAD_REQUEST);
+        }
+
+        if (request.getInvoiceNumber() == null) {
+            throw new CustomException("Invoice number cannot be null", HttpStatus.BAD_REQUEST);
+        }
+
+        if (request.getTypeExpense() == null || request.getTypeExpense().isEmpty()) {
+            throw new CustomException("Type of expense cannot be empty", HttpStatus.BAD_REQUEST);
+        }
+        List<String> validExpenseTypes = Arrays.asList("COMUN", "EXTRAORDINARIO", "INDIVIDUAL");
+        if (!validExpenseTypes.contains(request.getTypeExpense().toUpperCase())) {
+            throw new CustomException("Type of expense must be one of: COMUN, EXTRAORDINARIO, INDIVIDUAL", HttpStatus.BAD_REQUEST);
+        }
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new CustomException("Amount must be greater than zero", HttpStatus.BAD_REQUEST);
+        }
+
+        if (request.getInstallments() == null || request.getInstallments() <= 0) {
+            throw new CustomException("Installments must be greater than zero", HttpStatus.BAD_REQUEST);
+        }
+
+        if (request.getDistributions() == null || request.getDistributions().isEmpty()) {
+            throw new CustomException("Distributions cannot be empty", HttpStatus.BAD_REQUEST);
+        }
+        if (file != null) {
+            if (file.getContentType() == null ||
+                    (!file.getContentType().startsWith("image/") && !"application/pdf".equals(file.getContentType()))) {
+                throw new CustomException("the file must be an image or pdf", HttpStatus.BAD_REQUEST);
+            }
+        }
+        return true;
     }
 
     public DtoExpenseQuery getExpenseById(Integer expenseId) {

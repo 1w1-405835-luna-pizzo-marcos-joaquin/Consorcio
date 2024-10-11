@@ -27,9 +27,13 @@ public class ExpenseController {
     @Autowired
     private final IExpenseService expenseService;
 
-
+    @Operation(summary = "Create a new expense",
+            description = "Creates a new expense with the given details and optional file")
+    @ApiResponse(responseCode = "200", description = "Expense created successfully",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = DtoResponseExpense.class)))
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public DtoResponseExpense postExpense(
+    public ResponseEntity<DtoResponseExpense> postExpense(
             @RequestPart("expense") DtoRequestExpense request,
             @RequestPart(value = "file", required = false) MultipartFile file) {
         return expenseService.postExpense(request, file);
