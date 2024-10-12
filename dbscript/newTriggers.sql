@@ -61,8 +61,8 @@ FOR EACH ROW
 BEGIN
 
   -- Insertar la primera versión en la tabla de auditoría
-  INSERT INTO expenses_audit (id, description, provider_id, expense_date, file_id, invoice_number, expense_type, expense_category_id, amount, installments, created_datetime, created_user, last_updated_datetime, last_updated_user, enabled, version)
-  VALUES (NEW.id, NEW.description, NEW.provider_id, NEW.expense_date, NEW.file_id, NEW.invoice_number, NEW.expense_type, NEW.expense_category_id, NEW.amount, NEW.installments, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.enabled, 1);
+  INSERT INTO expenses_audit (id, description, provider_id, expense_date, file_id, invoice_number, expense_type, expense_category_id, amount, installments, created_datetime, created_user, last_updated_datetime, last_updated_user, note_credit,enabled, version)
+  VALUES (NEW.id, NEW.description, NEW.provider_id, NEW.expense_date, NEW.file_id, NEW.invoice_number, NEW.expense_type, NEW.expense_category_id, NEW.amount, NEW.installments, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.note_credit,NEW.enabled, 1);
 END$$
 
 -- Trigger para expenses (UPDATE)
@@ -79,8 +79,8 @@ BEGIN
 
   SELECT MAX(version) INTO last_version FROM expenses_audit WHERE id = NEW.id;
 
-  INSERT INTO expenses_audit (id, description, provider_id, expense_date, file_id, invoice_number, expense_type, expense_category_id, amount, installments, created_datetime, created_user, last_updated_datetime, last_updated_user, enabled, version)
-  VALUES (NEW.id, NEW.description, NEW.provider_id, NEW.expense_date, NEW.file_id, NEW.invoice_number, NEW.expense_type, NEW.expense_category_id, NEW.amount, NEW.installments, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.enabled, last_version + 1);
+  INSERT INTO expenses_audit (id, description, provider_id, expense_date, file_id, invoice_number, expense_type, expense_category_id, amount, installments, created_datetime, created_user, last_updated_datetime, last_updated_user, note_credit,enabled, version)
+  VALUES (NEW.id, NEW.description, NEW.provider_id, NEW.expense_date, NEW.file_id, NEW.invoice_number, NEW.expense_type, NEW.expense_category_id, NEW.amount, NEW.installments, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.note_credit,NEW.enabled, last_version + 1);
 END$$
 
 -- Trigger para expense_categories (INSERT)

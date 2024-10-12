@@ -24,6 +24,7 @@ CREATE TABLE expenses (
 	created_user INT not null,
 	last_updated_datetime DATETIME default now(),
 	last_updated_user INT not null,
+    note_credit BOOLEAN default 0,
 	enabled BOOLEAN default 1,
 	FOREIGN KEY (expense_category_id) REFERENCES expense_categories(id)
 );
@@ -84,6 +85,7 @@ CREATE TABLE expenses_audit (
 	created_user INT NOT NULL,
 	last_updated_datetime DATETIME DEFAULT now(),
 	last_updated_user INT NOT NULL,
+    note_credit BOOLEAN default 0,
 	enabled BOOLEAN DEFAULT 1,
 	version INT NOT NULL,
 	PRIMARY KEY (id, version)
