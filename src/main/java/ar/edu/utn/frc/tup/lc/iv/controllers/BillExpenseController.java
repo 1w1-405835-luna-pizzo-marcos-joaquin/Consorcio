@@ -55,7 +55,7 @@ public class BillExpenseController {
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal Server Error - Unexpected server error",
+                    description = "Internal Server Error - Unexpected server error or failed to process the bill expenses",
                     content = @Content(schema = @Schema(implementation = ErrorApi.class))
             )
     })
