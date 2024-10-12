@@ -5,17 +5,11 @@ import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoDistribution;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoRequestExpense;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoResponseExpense;
-import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseCategoryEntity;
-import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseDistributionEntity;
-import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseEntity;
-import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseInstallmentEntity;
+import ar.edu.utn.frc.tup.lc.iv.entities.*;
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseCategoryModel;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseModel;
-import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseCategoryRepository;
-import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseDistributionRepository;
-import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseInstallmentRepository;
-import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseRepository;
+import ar.edu.utn.frc.tup.lc.iv.repositories.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -28,7 +22,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -50,7 +46,9 @@ class ExpenseServiceTest {
     @Mock
     private ExpenseCategoryService expenseCategoryService;
     @Mock
-    private FileServerRestClient fileServerRestClient; //mock this when file server function
+    private BillExpensesInstallmentsRepository billExpensesInstallmentsRepository;
+    @Mock
+    private FileServerRestClient fileServerRestClient; //mock this when file server works
 
     @BeforeEach
     void setUp() {
@@ -193,5 +191,79 @@ class ExpenseServiceTest {
 
         return request;
     }
+    @Test
+    void deleteExpense_ExpenseDoesNotExist_ThrowsCustomException() {
+        Integer expenseId = 1;
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.empty());
+
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            expenseService.deteleExpense(expenseId);
+        });
+
+        assertEquals("The expense does not exist", exception.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    }
+
+    @Test
+    void deleteExpense_ExpenseHasRelatedInstallments_ThrowsCustomException() {
+        Integer expenseId = 1;
+        ExpenseEntity expenseEntity = new ExpenseEntity();
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expenseEntity));
+        when(billExpensesInstallmentsRepository.findByExpenseId(expenseId))
+                .thenReturn(Optional.of(Collections.singletonList(new BillExpenseInstallmentsEntity())));
+
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            expenseService.deteleExpense(expenseId);
+        });
+
+        assertEquals("Expense has related bill installments", exception.getMessage());
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+    }
+
+    @Test
+    void deleteExpense_NoRelatedInstallments_PerformsLogicalDeletion() {
+        Integer expenseId = 1;
+        ExpenseEntity expenseEntity = new ExpenseEntity();
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expenseEntity));
+        when(billExpensesInstallmentsRepository.findByExpenseId(expenseId)).thenReturn(Optional.empty());
+
+        expenseService.deteleExpense(expenseId);
+
+        verify(expenseRepository, times(1)).save(expenseEntity);
+        assertFalse(expenseEntity.getEnabled());
+    }
+    @Test
+    void createCreditNoteForExpense_ExpenseAlreadyHasCreditNote_ThrowsCustomException() {
+        Integer expenseId = 1;
+        ExpenseEntity expenseEntity = new ExpenseEntity();
+        expenseEntity.setNoteCredit(true);
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expenseEntity));
+
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            expenseService.createCreditNoteForExpense(expenseId);
+        });
+
+        assertEquals("The expense have a note of credit", exception.getMessage());
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+    }
+
+    @Test
+    void createCreditNoteForExpense_Successful() {
+        Integer expenseId = 1;
+        ExpenseEntity expenseEntity = new ExpenseEntity();
+        expenseEntity.setAmount(new BigDecimal("100.00"));
+        expenseEntity.setNoteCredit(false);
+        expenseEntity.setDistributions(new ArrayList<>());
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expenseEntity));
+        when(expenseInstallmentRepository.save(any())).thenReturn(new ExpenseInstallmentEntity());
+        BillExpenseInstallmentsEntity installmentEntity = new BillExpenseInstallmentsEntity();
+        when(billExpensesInstallmentsRepository.findByExpenseId(expenseId))
+                .thenReturn(Optional.of(Collections.singletonList(installmentEntity)));
+
+        expenseService.createCreditNoteForExpense(expenseId);
+        verify(expenseRepository, times(1)).save(any(ExpenseEntity.class));
+
+    }
+
 
 }
