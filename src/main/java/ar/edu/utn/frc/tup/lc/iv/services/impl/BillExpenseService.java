@@ -16,7 +16,9 @@ import ar.edu.utn.frc.tup.lc.iv.entities.BillExpenseOwnerEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.BillRecordEntity;
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
 import ar.edu.utn.frc.tup.lc.iv.models.*;
+import ar.edu.utn.frc.tup.lc.iv.repositories.BillExpenseInstallmentsRepository;
 import ar.edu.utn.frc.tup.lc.iv.repositories.BillRecordRepository;
+import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseRepository;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IBillExpenseService;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseService;
 import org.modelmapper.ModelMapper;
@@ -24,12 +26,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.io.Console;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
-
+//TODO Ojo que se me agrego EXPENSE_TYPE NoteCredit debo verificar en que me molestas
 @Service
 public class BillExpenseService implements IBillExpenseService {
 
@@ -38,17 +43,23 @@ public class BillExpenseService implements IBillExpenseService {
     private final OwnerRestClient ownerRestClient;
     private final SanctionRestClient sanctionRestClient;
     private final IExpenseService expenseService;
+    private final BillExpenseInstallmentsRepository billExpenseInstallmentsRepository;
 
     @Autowired
     public BillExpenseService(BillRecordRepository billRecordRepository, ModelMapper modelMapper,
                               OwnerRestClient ownerRestClient, SanctionRestClient sanctionRestClient,
-                              IExpenseService expenseService) {
+                              IExpenseService expenseService, BillExpenseInstallmentsRepository billExpenseInstallmentsRepository) {
         this.billRecordRepository = billRecordRepository;
         this.modelMapper = modelMapper;
         this.ownerRestClient = ownerRestClient;
         this.sanctionRestClient = sanctionRestClient;
         this.expenseService = expenseService;
+        this.billExpenseInstallmentsRepository = billExpenseInstallmentsRepository;
     }
+
+    //TODO Borrar esto y ajustar para cuando tengamos id de usuario que corresponde
+    private final Integer CREATE_USER =1;
+    private final Integer UPDATE_USER =1;
 
     /**
      * Generates a new BillExpense for a specific period. If a BillRecord already exists for the period,
@@ -140,9 +151,12 @@ public class BillExpenseService implements IBillExpenseService {
      * @return {@link BillRecordModel} The calculated bill.
      */
     private BillRecordModel calculateBillExpense(PeriodDto periodDto) {
-        BillRecordModel result = new BillRecordModel();
-        result.setStart(periodDto.getStartDate());
-        result.setEnd(periodDto.getEndDate());
+        BillRecordModel result = BillRecordModel.builder()
+                .start(periodDto.getStartDate())
+                .end(periodDto.getEndDate())
+                .build();
+        result.setCreatedUser(CREATE_USER);
+        result.setLastUpdatedUser(UPDATE_USER);
 
         // Retrieve the applicable expenses and distribute them among owners
         List<ExpenseModel> expenseModels = getExpenses(periodDto);
@@ -186,6 +200,9 @@ public class BillExpenseService implements IBillExpenseService {
             billExpenseOwnerModel.setBillExpenseFines(new ArrayList<>());
             billExpenseOwnerModel.setBillExpenseInstallments(new ArrayList<>());
 
+            billExpenseOwnerModel.setCreatedUser(CREATE_USER);
+            billExpenseOwnerModel.setLastUpdatedUser(UPDATE_USER);
+
             // For each plot owned by the current owner, fetch the related fines from the Map
             for (PlotDto plot : owner.getPlots()) {
                 // Get the list of fines for the current plotId from the Map, or an empty list if none exist
@@ -197,6 +214,10 @@ public class BillExpenseService implements IBillExpenseService {
                     billExpenseFineModel.setFineId(fine.getId());
                     billExpenseFineModel.setAmount(fine.getAmount());
                     billExpenseFineModel.setDescription(fine.getDescription());
+
+                    billExpenseFineModel.setCreatedUser(CREATE_USER);
+                    billExpenseFineModel.setLastUpdatedUser(UPDATE_USER);
+
                     billExpenseOwnerModel.getBillExpenseFines().add(billExpenseFineModel);
                 }
             }
@@ -219,7 +240,7 @@ public class BillExpenseService implements IBillExpenseService {
         // Distribute the expense proportionally to each owner based on their field size
         for (BillExpenseOwnerModel billExpenseOwnerModel : billRecordModel.getBillExpenseOwner()) {
             BigDecimal proportionFieldSize = getProportionFieldSize(totalSize, billExpenseOwnerModel.getFieldSize());
-            BigDecimal amount = amountToInstall.multiply(proportionFieldSize);
+            BigDecimal amount = amountToInstall.multiply(proportionFieldSize).setScale(2, RoundingMode.HALF_UP);
             expensesDistribution(billExpenseOwnerModel, expenseModel, billRecordModel.getStart(), billRecordModel.getEnd(), amount);
         }
     }
@@ -242,7 +263,7 @@ public class BillExpenseService implements IBillExpenseService {
             ExpenseDistributionModel expenseDistributionModel = expenseModel.getDistributions().stream()
                     .filter(m -> m.getOwnerId().equals(billExpenseOwnerModel.getOwnerId())).findFirst().get();
 
-            BigDecimal amountToProportion = amountToInstall.multiply(expenseDistributionModel.getProportion());
+            BigDecimal amountToProportion = amountToInstall.multiply(expenseDistributionModel.getProportion()).setScale(2, RoundingMode.HALF_UP);
             expensesDistribution(billExpenseOwnerModel, expenseModel, billRecordModel.getStart(), billRecordModel.getEnd(), amountToProportion);
         }
     }
@@ -259,12 +280,17 @@ public class BillExpenseService implements IBillExpenseService {
                                       LocalDate startDate, LocalDate endDate, BigDecimal amount) {
         // Filter the installments that fall within the billing period
         for (ExpenseInstallmentModel installmentModel : getExpenseInstallmentsFilter(expenseModel.getInstallmentsList(), startDate, endDate)) {
-            String description = installmentModel.getExpenseModel().getCategory().getDescription() + " - "
-                    + installmentModel.getExpenseModel().getDescription();
-            BillExpenseInstallmentModel billExpenseInstallmentModel = new BillExpenseInstallmentModel();
-            billExpenseInstallmentModel.setAmount(amount);
-            billExpenseInstallmentModel.setExpenseInstallment(installmentModel);
-            billExpenseInstallmentModel.setDescription(description);
+            String description = expenseModel.getCategory().getDescription() + " - "
+                    + expenseModel.getDescription();
+            BillExpenseInstallmentModel billExpenseInstallmentModel = BillExpenseInstallmentModel.builder()
+                    .amount(amount)
+                    .expenseInstallment(installmentModel)
+                    .description(description)
+                    .expenseType(expenseModel.getExpenseType())
+                    .build();
+
+            billExpenseInstallmentModel.setCreatedUser(CREATE_USER);
+            billExpenseInstallmentModel.setLastUpdatedUser(CREATE_USER);
 
             // Add the calculated installment to the owner's bill
             billExpenseOwnerModel.getBillExpenseInstallments().add(billExpenseInstallmentModel);
@@ -278,7 +304,13 @@ public class BillExpenseService implements IBillExpenseService {
      */
     private BigDecimal getAmountToInstall(ExpenseModel expenseModel) {
         // Total amount divided by the number of installments
-        return expenseModel.getAmount().divide(new BigDecimal(expenseModel.getInstallments()));
+        BigDecimal amount = expenseModel.getAmount();
+        BigDecimal installments = BigDecimal.valueOf(expenseModel.getInstallments());
+        if(installments.compareTo(BigDecimal.ZERO) <= 0){
+
+            throw new CustomException("The installments must be greater than zero", HttpStatus.BAD_REQUEST);
+        }
+        return amount.divide(installments,2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -289,8 +321,10 @@ public class BillExpenseService implements IBillExpenseService {
      */
     private BigDecimal getProportionFieldSize(Integer totalFieldSize, Integer ownerFieldSize) {
         // Proportion = (ownerFieldSize / totalFieldSize)
-        return (BigDecimal.valueOf(ownerFieldSize).multiply(BigDecimal.valueOf(100.00)))
-                .divide(BigDecimal.valueOf(totalFieldSize)).divide(BigDecimal.valueOf(100.00));
+        BigDecimal ownerProportion = BigDecimal.valueOf(ownerFieldSize);
+        BigDecimal totalSize = BigDecimal.valueOf(totalFieldSize);
+        ownerProportion = ownerProportion.divide(totalSize,2,RoundingMode.HALF_UP);
+        return ownerProportion;
     }
 
     /**
@@ -312,10 +346,11 @@ public class BillExpenseService implements IBillExpenseService {
      * @param billRecordModel The BillRecord to save.
      * @return {@link BillRecordModel} The saved BillRecordModel.
      */
-    private BillRecordModel saveBillRecord(BillRecordModel billRecordModel) {
+    @Transactional
+    protected BillRecordModel saveBillRecord(BillRecordModel billRecordModel) {
         // Map BillRecordModel to BillRecordEntity for database storage
         BillRecordEntity billRecordEntity = billRecordModelToEntity(billRecordModel);
-        billRecordEntity = billRecordRepository.saveAndFlush(billRecordEntity);
+        billRecordRepository.save(billRecordEntity);
         return billRecordEntityToModel(billRecordEntity);
     }
 
@@ -325,55 +360,40 @@ public class BillExpenseService implements IBillExpenseService {
      * @return {@link BillRecordModel} The mapped model.
      */
     private BillRecordModel billRecordEntityToModel(BillRecordEntity billRecordEntity) {
-        BillRecordModel billRecordModel = modelMapper.map(billRecordEntity, BillRecordModel.class);
-        billRecordModel.setBillExpenseOwner(new ArrayList<>());
-
-        // Map each BillExpenseOwnerEntity to BillExpenseOwnerModel
-        for (BillExpenseOwnerEntity entity : billRecordEntity.getBillExpenseOwner()) {
-            BillExpenseOwnerModel billExpenseOwnerModel = modelMapper.map(entity, BillExpenseOwnerModel.class);
-            billExpenseOwnerModel.setBillExpenseFines(new ArrayList<>());
-            billExpenseOwnerModel.setBillExpenseInstallments(new ArrayList<>());
-
-            // Map fines and installments
-            for (BillExpenseFineEntity fineEntity : entity.getBillExpenseFines()) {
-                billExpenseOwnerModel.getBillExpenseFines().add(modelMapper.map(fineEntity, BillExpenseFineModel.class));
-            }
-            for (BillExpenseInstallmentsEntity installmentEntity : entity.getBillExpenseInstallments()) {
-                billExpenseOwnerModel.getBillExpenseInstallments().add(modelMapper.map(installmentEntity, BillExpenseInstallmentModel.class));
-            }
-
-            billRecordModel.getBillExpenseOwner().add(billExpenseOwnerModel);
-        }
-
-        return billRecordModel;
+        return modelMapper.map(billRecordEntity, BillRecordModel.class);
     }
 
     /**
      * Maps a {@link BillRecordModel} to a {@link BillRecordEntity}.
+     * This method also ensures that the relationships between {@link BillRecordEntity} and its
+     * children ({@link BillExpenseOwnerEntity}, {@link BillExpenseFineEntity}, {@link BillExpenseInstallmentsEntity})
+     * are properly set before the entity is persisted.
+     *
      * @param billRecordModel The model to map.
-     * @return {@link BillRecordEntity} The mapped entity.
+     * @return {@link BillRecordEntity} The mapped entity with properly assigned relationships.
      */
     private BillRecordEntity billRecordModelToEntity(BillRecordModel billRecordModel) {
         BillRecordEntity billRecordEntity = modelMapper.map(billRecordModel, BillRecordEntity.class);
-        billRecordEntity.setBillExpenseOwner(new ArrayList<>());
 
-        // Map each BillExpenseOwnerModel to BillExpenseOwnerEntity
-        for (BillExpenseOwnerModel ownerModel : billRecordModel.getBillExpenseOwner()) {
-            BillExpenseOwnerEntity billExpenseOwnerEntity = modelMapper.map(ownerModel, BillExpenseOwnerEntity.class);
-            billExpenseOwnerEntity.setBillExpenseFines(new ArrayList<>());
-            billExpenseOwnerEntity.setBillExpenseInstallments(new ArrayList<>());
-
-            // Map fines and installments
-            for (BillExpenseFineModel fineModel : ownerModel.getBillExpenseFines()) {
-                BillExpenseFineEntity fineEntity = modelMapper.map(fineModel, BillExpenseFineEntity.class);
-                billExpenseOwnerEntity.getBillExpenseFines().add(fineEntity);
-            }
-            for (BillExpenseInstallmentModel installmentModel : ownerModel.getBillExpenseInstallments()) {
-                BillExpenseInstallmentsEntity installmentEntity = modelMapper.map(installmentModel, BillExpenseInstallmentsEntity.class);
-                billExpenseOwnerEntity.getBillExpenseInstallments().add(installmentEntity);
+        // Ensure that each child (BillExpenseOwnerEntity) has a reference to its parent (BillRecordEntity)
+        for (BillExpenseOwnerEntity ownerEntity : billRecordEntity.getBillExpenseOwner()) {
+            if (ownerEntity.getBillRecord() == null) {
+                ownerEntity.setBillRecord(billRecordEntity);
             }
 
-            billRecordEntity.getBillExpenseOwner().add(billExpenseOwnerEntity);
+            // Ensure each fine (BillExpenseFineEntity) has a reference to its owner (BillExpenseOwnerEntity)
+            for (BillExpenseFineEntity fineEntity : ownerEntity.getBillExpenseFines()) {
+                if (fineEntity.getBillExpenseOwner() == null) {
+                    fineEntity.setBillExpenseOwner(ownerEntity);
+                }
+            }
+
+            // Ensure each installment (BillExpenseInstallmentsEntity) has a reference to its owner (BillExpenseOwnerEntity)
+            for (BillExpenseInstallmentsEntity installmentEntity : ownerEntity.getBillExpenseInstallments()) {
+                if (installmentEntity.getBillExpenseOwner() == null) {
+                    installmentEntity.setBillExpenseOwner(ownerEntity);
+                }
+            }
         }
 
         return billRecordEntity;
@@ -385,18 +405,27 @@ public class BillExpenseService implements IBillExpenseService {
      * @return {@link BillExpenseDto} The mapped DTO.
      */
     private BillExpenseDto billRecordModelToDto(BillRecordModel billRecordModel) {
-        BillExpenseDto billExpenseDto = new BillExpenseDto();
-        billExpenseDto.setId(billRecordModel.getId());
-        billExpenseDto.setStartDate(billRecordModel.getStart());
-        billExpenseDto.setEndDate(billRecordModel.getEnd());
-        billExpenseDto.setOwners(new ArrayList<>());
+        try {
+            Map<Integer,String> installmentsType = getInstallmentAndExpenseType(billRecordModel.getId());
+            BillExpenseDto billExpenseDto = new BillExpenseDto();
+            billExpenseDto.setId(billRecordModel.getId());
+            billExpenseDto.setStartDate(billRecordModel.getStart());
+            billExpenseDto.setEndDate(billRecordModel.getEnd());
+            billExpenseDto.setOwners(new ArrayList<>());
 
-        // Map each BillExpenseOwnerModel to BillOwnerDto
-        for (BillExpenseOwnerModel ownerModel : billRecordModel.getBillExpenseOwner()) {
-            billExpenseDto.getOwners().add(billOwnerModelToDto(ownerModel));
+            // Map each BillExpenseOwnerModel to BillOwnerDto
+            for (BillExpenseOwnerModel ownerModel : billRecordModel.getBillExpenseOwner()) {
+                billExpenseDto.getOwners().add(billOwnerModelToDto(ownerModel,installmentsType));
+            }
+
+            return billExpenseDto;
+        }catch (Exception ex){
+            // CustomException description: An error occurred while processing the BillRecord,
+            // but the BillRecord exists or was generated. The return process failed, not the record generation.
+            throw new CustomException("Error occurred processing the bill record. The record was created or already exists, " +
+                    "but the return process failed.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        return billExpenseDto;
     }
 
     /**
@@ -404,26 +433,32 @@ public class BillExpenseService implements IBillExpenseService {
      * @param ownerModel The model to map.
      * @return {@link BillOwnerDto} The mapped DTO.
      */
-    private BillOwnerDto billOwnerModelToDto(BillExpenseOwnerModel ownerModel) {
-        BillOwnerDto ownerDto = new BillOwnerDto();
-        ownerDto.setId(ownerModel.getOwnerId());
-        ownerDto.setFieldSize(ownerModel.getFieldSize());
-        ownerDto.setExpenses_extraordinary(new ArrayList<>());
-        ownerDto.setFines(new ArrayList<>());
-        ownerDto.setExpenses_individual(new ArrayList<>());
+    private BillOwnerDto billOwnerModelToDto(BillExpenseOwnerModel ownerModel, Map<Integer,String> installmentsType) {
+        BillOwnerDto ownerDto = BillOwnerDto.builder()
+                .id(ownerModel.getId())
+                .fieldSize(ownerModel.getFieldSize())
+                .expenses_common(new ArrayList<>())
+                .expenses_extraordinary(new ArrayList<>())
+                .expenses_individual(new ArrayList<>())
+                .fines(new ArrayList<>())
+                .build();
 
         // Map fines and installments based on expense type
         for (BillExpenseFineModel fineModel : ownerModel.getBillExpenseFines()) {
             ownerDto.getFines().add(billFineModelToDto(fineModel));
         }
         for (BillExpenseInstallmentModel installmentModel : ownerModel.getBillExpenseInstallments()) {
-            if (installmentModel.getExpenseInstallment().getExpenseModel().getExpenseType().equals(ExpenseType.COMUN)) {
+            String type = installmentsType.get(installmentModel.getId());
+            if (type == null)
+                throw new CustomException("Expense Type is not defined", HttpStatus.BAD_REQUEST);
+            ExpenseType typeInstallment = ExpenseType.valueOf(type);
+            if (typeInstallment.equals(ExpenseType.COMUN)) {
                 ownerDto.getExpenses_common().add(billInstallmentModelToDto(installmentModel));
             }
-            if (installmentModel.getExpenseInstallment().getExpenseModel().getExpenseType().equals(ExpenseType.INDIVIDUAL)) {
+            if (typeInstallment.equals(ExpenseType.INDIVIDUAL)) {
                 ownerDto.getExpenses_individual().add(billInstallmentModelToDto(installmentModel));
             }
-            if (installmentModel.getExpenseInstallment().getExpenseModel().getExpenseType().equals(ExpenseType.EXTRAORDINARIO)) {
+            if (typeInstallment.equals(ExpenseType.EXTRAORDINARIO)) {
                 ownerDto.getExpenses_extraordinary().add(billInstallmentModelToDto(installmentModel));
             }
         }
@@ -433,29 +468,43 @@ public class BillExpenseService implements IBillExpenseService {
 
     /**
      * Maps a {@link BillExpenseFineModel} to an {@link ItemDto}.
+     * This method uses the builderItemDto method to create an {@link ItemDto} from the fine model.
+     *
      * @param fineModel The model to map.
-     * @return {@link ItemDto} The mapped DTO.
+     * @return {@link ItemDto} The mapped DTO, containing the fine ID, amount, and description.
      */
     private ItemDto billFineModelToDto(BillExpenseFineModel fineModel) {
-        ItemDto itemDto = new ItemDto();
-        itemDto.setId(fineModel.getFineId());
-        itemDto.setAmount(fineModel.getAmount());
-        itemDto.setDescription(fineModel.getDescription());
-        return itemDto;
+        return builderItemDto(fineModel.getFineId(), fineModel.getAmount(), fineModel.getDescription());
     }
 
     /**
      * Maps a {@link BillExpenseInstallmentModel} to an {@link ItemDto}.
+     * This method uses the builderItemDto method to create an {@link ItemDto} from the installment model.
+     *
      * @param installmentModel The model to map.
-     * @return {@link ItemDto} The mapped DTO.
+     * @return {@link ItemDto} The mapped DTO, containing the installment ID, amount, and description.
      */
     private ItemDto billInstallmentModelToDto(BillExpenseInstallmentModel installmentModel) {
-        ItemDto itemDto = new ItemDto();
-        itemDto.setId(installmentModel.getId());
-        itemDto.setAmount(installmentModel.getAmount());
-        itemDto.setDescription(installmentModel.getDescription());
-        return itemDto;
+        return builderItemDto(installmentModel.getId(), installmentModel.getAmount(), installmentModel.getDescription());
     }
+
+    /**
+     * Creates an {@link ItemDto} object using the provided id, amount, and description.
+     * This is a helper method to standardize the creation of {@link ItemDto} from various models.
+     *
+     * @param id The ID of the item.
+     * @param amount The amount related to the item.
+     * @param description The description of the item.
+     * @return {@link ItemDto} The built DTO containing the id, amount, and description.
+     */
+    private ItemDto builderItemDto(Integer id, BigDecimal amount, String description) {
+        return ItemDto.builder()
+                .id(id)
+                .amount(amount)
+                .description(description)
+                .build();
+    }
+
     /**
      * Validates the period provided in the {@link PeriodDto}.
      * - The start date must be earlier than the end date.
@@ -468,7 +517,14 @@ public class BillExpenseService implements IBillExpenseService {
      */
     private void validatePeriod(PeriodDto periodDto) {
         LocalDate today = LocalDate.now();
-
+        // Validate that the period is not null
+        if(periodDto == null)
+            throw new CustomException("The period be can't null", HttpStatus.BAD_REQUEST);
+        // Validate that the start date is not null
+        if(periodDto.getStartDate() == null)
+            throw new CustomException("The start date be can't null", HttpStatus.BAD_REQUEST);
+        if(periodDto.getEndDate() == null)
+            throw new CustomException("The end date be can't null", HttpStatus.BAD_REQUEST);
         // Validate that the start date is before the end date
         if (periodDto.getStartDate().isAfter(periodDto.getEndDate())) {
             throw new CustomException("The start date must be earlier than the end date.", HttpStatus.BAD_REQUEST);
@@ -488,6 +544,17 @@ public class BillExpenseService implements IBillExpenseService {
         if (periodDto.getStartDate().isEqual(periodDto.getEndDate())) {
             throw new CustomException("The start date and end date cannot be the same.", HttpStatus.BAD_REQUEST);
         }
+    }
+
+    /**
+     * Retrieves a Map of installment IDs and their associated expense types.
+     *
+     * @param id The ID of the BillRecord.
+     * @return Map with the installment ID as the key and the expense type as the value.
+     */
+    private Map<Integer,String> getInstallmentAndExpenseType(Integer id) {
+        List<Object[]> repo = billExpenseInstallmentsRepository.findInstallmentIdAndExpenseTypeByBillRecordId(id);
+        return repo.stream().collect(Collectors.toMap(row-> (Integer)row[0],row->(String)row[1]));
     }
 }
 
