@@ -53,6 +53,9 @@ public class ExpenseEntity extends AuditEntity {
     @Column(name = "installments")
     private Integer installments;
 
+    @Column(name = "note_credit")
+    private Boolean noteCredit;
+
     @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL)
     private List<ExpenseDistributionEntity> distributions;
 
