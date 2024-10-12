@@ -1,9 +1,6 @@
 package ar.edu.utn.frc.tup.lc.iv.models;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -12,6 +9,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper=false)
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class BillRecordModel extends AuditModel {
     private LocalDate start;
     private LocalDate end;
