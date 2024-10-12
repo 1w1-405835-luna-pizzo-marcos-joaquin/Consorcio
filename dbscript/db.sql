@@ -24,6 +24,7 @@ CREATE TABLE expenses (
 	created_user INT not null,
 	last_updated_datetime DATETIME default now(),
 	last_updated_user INT not null,
+    note_credit BOOLEAN default 0,
 	enabled BOOLEAN default 1,
 	FOREIGN KEY (expense_category_id) REFERENCES expense_categories(id)
 );
@@ -84,6 +85,7 @@ CREATE TABLE expenses_audit (
 	created_user INT NOT NULL,
 	last_updated_datetime DATETIME DEFAULT now(),
 	last_updated_user INT NOT NULL,
+    note_credit BOOLEAN default 0,
 	enabled BOOLEAN DEFAULT 1,
 	version INT NOT NULL,
 	PRIMARY KEY (id, version)
@@ -123,9 +125,9 @@ CREATE TABLE bills_record (
 	id INT AUTO_INCREMENT PRIMARY KEY,
 	start_date DATE NOT NULL,
 	end_date DATE NOT NULL,
-	created_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+	created_datetime DATETIME default now(),
 	created_user INT NOT NULL,
-	last_updated_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+	last_updated_datetime DATETIME default now(),
 	last_updated_user INT NOT NULL,
 	enabled BOOLEAN DEFAULT 1
 );
@@ -136,9 +138,9 @@ CREATE TABLE bills_expense_owners (
     bill_record_id INT NOT NULL,
     owner_id INT NOT NULL,
     field_size INT NOT NULL,
-    created_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_datetime DATETIME default now(),
     created_user INT NOT NULL,
-    last_updated_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated_datetime DATETIME default now(),
     last_updated_user INT NOT NULL,
     enabled BOOLEAN DEFAULT 1,
     FOREIGN KEY (bill_record_id) REFERENCES bills_record(id)
@@ -147,12 +149,13 @@ CREATE TABLE bills_expense_owners (
 -- Tabla bills_expense_fines
 CREATE TABLE bills_expense_fines (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    description VARCHAR(255),
     bill_expense_owner_id INT NOT NULL,
     fine_id INT NOT NULL,
     amount DECIMAL(11,2) NOT NULL,
-    created_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_datetime DATETIME DEFAULT now(),
     created_user INT NOT NULL,
-    last_updated_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated_datetime DATETIME DEFAULT now(),
     last_updated_user INT NOT NULL,
     enabled BOOLEAN DEFAULT 1,
     FOREIGN KEY (bill_expense_owner_id) REFERENCES bills_expense_owners(id)
@@ -161,12 +164,13 @@ CREATE TABLE bills_expense_fines (
 -- Tabla bills_expense_installments
 CREATE TABLE bills_expense_installments (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    description VARCHAR(255),
     bill_expense_owner_id INT NOT NULL,
     expense_installment_id INT NOT NULL,
     amount DECIMAL(11,2) NOT NULL,
-    created_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_datetime DATETIME DEFAULT now(),
     created_user INT NOT NULL,
-    last_updated_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated_datetime DATETIME DEFAULT now(),
     last_updated_user INT NOT NULL,
     enabled BOOLEAN DEFAULT 1,
     FOREIGN KEY (bill_expense_owner_id) REFERENCES bills_expense_owners(id),
@@ -178,9 +182,9 @@ CREATE TABLE bills_record_audit (
     id INT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    created_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_datetime DATETIME DEFAULT now(),
     created_user INT NOT NULL,
-    last_updated_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated_datetime DATETIME DEFAULT now(),
     last_updated_user INT NOT NULL,
     enabled BOOLEAN DEFAULT 1,
     version INT NOT NULL,
@@ -193,9 +197,9 @@ CREATE TABLE bills_expense_owners_audit (
     bill_record_id INT NOT NULL,
     owner_id INT NOT NULL,
     field_size INT NOT NULL,
-    created_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_datetime DATETIME DEFAULT now(),
     created_user INT NOT NULL,
-    last_updated_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated_datetime DATETIME DEFAULT now(),
     last_updated_user INT NOT NULL,
     enabled BOOLEAN DEFAULT 1,
     version INT NOT NULL,
@@ -205,12 +209,13 @@ CREATE TABLE bills_expense_owners_audit (
 -- Tabla bills_expense_fines_audit
 CREATE TABLE bills_expense_fines_audit (
     id INT NOT NULL,
+    description VARCHAR(255),
     bill_expense_owner_id INT NOT NULL,
     fine_id INT NOT NULL,
     amount DECIMAL(11,2) NOT NULL,
-    created_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_datetime DATETIME DEFAULT now(),
     created_user INT NOT NULL,
-    last_updated_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated_datetime DATETIME DEFAULT now(),
     last_updated_user INT NOT NULL,
     enabled BOOLEAN DEFAULT 1,
     version INT NOT NULL,
@@ -220,12 +225,13 @@ CREATE TABLE bills_expense_fines_audit (
 -- Tabla bills_expense_installments_audit
 CREATE TABLE bills_expense_installments_audit (
     id INT NOT NULL,
+    description VARCHAR(255),
     bill_expense_owner_id INT NOT NULL,
     expense_installment_id INT NOT NULL,
     amount DECIMAL(11,2) NOT NULL,
-    created_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_datetime DATETIME DEFAULT now(),
     created_user INT NOT NULL,
-    last_updated_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated_datetime DATETIME DEFAULT now(),
     last_updated_user INT NOT NULL,
     enabled BOOLEAN DEFAULT 1,
     version INT NOT NULL,

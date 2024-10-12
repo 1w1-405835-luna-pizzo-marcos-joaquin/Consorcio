@@ -30,6 +30,7 @@ public class ExpenseModel {
     private Integer createdUser;
     private LocalDateTime lastUpdatedDatetime;
     private Integer lastUpdatedUser;
+    private Boolean noteCredit;
     private Boolean enabled;
     private List<ExpenseDistributionModel> distributions;
     private List<ExpenseInstallmentModel> installmentsList;

@@ -5,7 +5,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
-
+//TODO move this class to client package
 @Service
 public class FileServerRestClient {
 

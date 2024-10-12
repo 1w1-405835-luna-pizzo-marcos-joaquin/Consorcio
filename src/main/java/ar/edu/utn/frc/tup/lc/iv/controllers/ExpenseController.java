@@ -27,6 +27,7 @@ public class ExpenseController {
     @Autowired
     private final IExpenseService expenseService;
 
+    //TODO VER PORQUE NO DEVUELVE EL FILE ID
     @Operation(summary = "Create a new expense",
             description = "Creates a new expense with the given details and optional file")
     @ApiResponse(responseCode = "200", description = "Expense created successfully",
@@ -39,6 +40,24 @@ public class ExpenseController {
         return expenseService.postExpense(request, file);
     }
 
+    //TODO MANDAR MENSAJE DE CONFIRMACION DE BORRADO
+    @Operation(summary = "Delete logic or expense")
+    @ApiResponse(responseCode = "204", description = "Expense delete logic successfully",
+    content = @Content(mediaType = "application/json"))
+    @DeleteMapping()
+    public ResponseEntity<Void> deleteExpenseByIdLogicOrThrowException(@RequestParam Integer id) {
+        expenseService.deteleExpense(id);
+        return ResponseEntity.noContent().build();
+    }
+    @Operation(summary = "Create note of credit")
+    @ApiResponse(responseCode = "204", description = "Note of credit created succcessfully",
+            content = @Content(mediaType = "application/json"))
+    @DeleteMapping("/note_credit")
+    public ResponseEntity<Void> createNoteOfCredit(@RequestParam Integer id) {
+        expenseService.createCreditNoteForExpense(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/getById")
     @Operation(summary = "Get expense by id")
     @ApiResponse(responseCode = "200", description = "Expenses get successfully",
@@ -48,6 +67,10 @@ public class ExpenseController {
         return ResponseEntity.ok(expenseService.getExpenseById(expenseId)) ;
     }
 
+
+    //TODO REQUIRED FROM AND TO
+    //TODO AL DTORESPONSE DEBERIA TENER EL FILEID Y EL INSTALLMENT LIST
+    //TODO LA FECHA FORMATO YYYY-MM-DD
     @GetMapping("/getByFilters")
     @Operation(summary = "Get expenses by filters")
     @ApiResponse(responseCode = "200", description = "Expenses get successfully",

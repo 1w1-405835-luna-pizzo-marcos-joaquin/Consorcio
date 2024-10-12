@@ -1,9 +1,11 @@
 package ar.edu.utn.frc.tup.lc.iv.entities;
 
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
@@ -13,11 +15,12 @@ import java.util.List;
 import java.util.UUID;
 
 @Data
+@EqualsAndHashCode(callSuper=false)
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "expenses")
-public class ExpenseEntity {
+public class ExpenseEntity extends AuditEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -51,24 +54,12 @@ public class ExpenseEntity {
     @Column(name = "installments")
     private Integer installments;
 
-    @Column(name = "created_datetime", nullable = false)
-    private LocalDateTime createdDatetime;
+    @Column(name = "note_credit")
+    private Boolean noteCredit;
 
-    @Column(name = "created_user", nullable = false)
-    private Integer createdUser;
-
-    @Column(name = "last_updated_datetime", nullable = false)
-    private LocalDateTime lastUpdatedDatetime;
-
-    @Column(name = "last_updated_user", nullable = false)
-    private Integer lastUpdatedUser;
-
-    @Column(name = "enabled", nullable = false)
-    private Boolean enabled;
-
+    @JsonIgnore
     @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL)
     private List<ExpenseDistributionEntity> distributions;
-
 
     @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL)
     private List<ExpenseInstallmentEntity> installmentsList;
