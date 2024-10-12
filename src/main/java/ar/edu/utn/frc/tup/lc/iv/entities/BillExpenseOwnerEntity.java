@@ -3,21 +3,22 @@ package ar.edu.utn.frc.tup.lc.iv.entities;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@EqualsAndHashCode(callSuper=false)
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "bills_expense_owners")
-public class BillExpenseOwnerEntity {
+public class BillExpenseOwnerEntity extends AuditEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
     @ManyToOne
     @JoinColumn(name = "bill_record_id", nullable = false)
     private BillRecordEntity billRecord;
@@ -27,20 +28,6 @@ public class BillExpenseOwnerEntity {
 
     @Column(name = "field_size")
     private Integer fieldSize;
-    @Column(name = "created_datetime", nullable = false)
-    private LocalDateTime createdDatetime;
-
-    @Column(name = "created_user", nullable = false)
-    private Integer createdUser;
-
-    @Column(name = "last_updated_datetime", nullable = false)
-    private LocalDateTime lastUpdatedDatetime;
-
-    @Column(name = "last_updated_user", nullable = false)
-    private Integer lastUpdatedUser;
-
-    @Column(name = "enabled", nullable = false)
-    private Boolean enabled;
 
     @OneToMany(mappedBy = "billExpenseOwner",cascade = CascadeType.ALL)
     private List<BillExpenseFineEntity> billExpenseFines;

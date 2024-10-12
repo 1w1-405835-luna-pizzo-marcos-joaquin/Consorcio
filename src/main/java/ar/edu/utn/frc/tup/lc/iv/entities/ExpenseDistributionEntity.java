@@ -3,17 +3,20 @@ package ar.edu.utn.frc.tup.lc.iv.entities;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
+@EqualsAndHashCode(callSuper=false)
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 @Table(name = "expense_distribution")
-public class ExpenseDistributionEntity {
+public class ExpenseDistributionEntity extends AuditEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -27,18 +30,6 @@ public class ExpenseDistributionEntity {
 
     @Column(name = "proportion", nullable = false, precision = 3, scale = 2)
     private BigDecimal proportion;
-
-    @Column(name = "created_datetime", nullable = false)
-    private LocalDateTime createdDatetime;
-
-    @Column(name = "created_user", nullable = false)
-    private Integer createdUser;
-
-    @Column(name = "last_updated_datetime", nullable = false)
-    private LocalDateTime lastUpdatedDatetime;
-
-    @Column(name = "last_updated_user", nullable = false)
-    private Integer lastUpdatedUser;
 
     @Column(name = "enabled", nullable = false)
     private Boolean enabled;
