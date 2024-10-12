@@ -1,6 +1,7 @@
 package ar.edu.utn.frc.tup.lc.iv.entities;
 
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -56,9 +57,9 @@ public class ExpenseEntity extends AuditEntity {
     @Column(name = "note_credit")
     private Boolean noteCredit;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL)
     private List<ExpenseDistributionEntity> distributions;
-
 
     @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL)
     private List<ExpenseInstallmentEntity> installmentsList;
