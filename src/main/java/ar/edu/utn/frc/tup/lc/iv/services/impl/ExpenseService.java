@@ -16,16 +16,21 @@ import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseDistributionRepository;
 import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseInstallmentRepository;
 import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseRepository;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @Service
@@ -45,6 +50,11 @@ public class ExpenseService implements IExpenseService {
     private ExpenseCategoryService expenseCategoryService;
     @Autowired
     private FileServerRestClient fileServerRestClient;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private RestTemplate restTemplate;
+
 
     @Override
     public ResponseEntity<DtoResponseExpense> postExpense(DtoRequestExpense request, MultipartFile file) {
@@ -111,7 +121,6 @@ public class ExpenseService implements IExpenseService {
         dtoResponseExpense.setExpenseDate(expenseModel.getExpenseDate());
         dtoResponseExpense.setExpenseType(expenseModel.getExpenseType());
         dtoResponseExpense.setDescription(expenseModel.getDescription());
-        dtoResponseExpense.setFileId(expenseModel.getFileId());
         DtoCategory dtoCategory = new DtoCategory();
         dtoCategory.setId(expenseModel.getCategory().getId());
         dtoCategory.setDescription(expenseModel.getCategory().getDescription());
@@ -261,4 +270,136 @@ public class ExpenseService implements IExpenseService {
         return true;
     }
 
+    public DtoExpenseQuery getExpenseById(Integer expenseId) {
+
+        DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
+        //consultar todos los gastos de la base de datos
+        ExpenseEntity expenseEntity = expenseRepository.findById(expenseId).orElseThrow(() -> new CustomException("The expense does not exist", HttpStatus.NOT_FOUND));
+        if (!expenseEntity.getEnabled()){
+            throw new CustomException("The expense does not exist", HttpStatus.NOT_FOUND);
+        }
+        dtoExpenseQuery= modelMapper.map(expenseEntity, DtoExpenseQuery.class);
+
+        if (expenseEntity.getProviderId() != null) {
+            dtoExpenseQuery.setProvider(getProvider(expenseEntity.getProviderId()));
+        } else {
+            dtoExpenseQuery.setProvider("");
+        }
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        String formattedDate = expenseEntity.getCreatedDatetime().format(formatter);
+        dtoExpenseQuery.setCreatedDatetime(formattedDate);
+
+        dtoExpenseQuery.setCategory(expenseEntity.getCategory().getDescription());
+        dtoExpenseQuery.setDistributionList(new ArrayList<>());
+
+        for (ExpenseDistributionEntity distributionEntity : expenseEntity.getDistributions()) {
+            //get owner name and amount
+            String ownerName= getOwnerFullName(distributionEntity.getOwnerId());
+            BigDecimal amount = expenseEntity.getAmount().multiply(distributionEntity.getProportion());
+            //set owner name and amount to dto
+            DtoExpenseDistributionQuery dtoExpenseDistributionQuery = new DtoExpenseDistributionQuery();
+            dtoExpenseDistributionQuery.setOwnerFullName(ownerName);
+            dtoExpenseDistributionQuery.setAmount(amount);
+            dtoExpenseDistributionQuery.setOwnerId(distributionEntity.getOwnerId());
+            //add dto to list
+           dtoExpenseQuery.getDistributionList().add(dtoExpenseDistributionQuery);
+        }
+
+        return dtoExpenseQuery;
+    }
+
+
+    public List<DtoExpenseQuery> getExpenses(String expenseType,String category, String provider, String dateFrom, String dateTo) {
+
+        DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
+        List<DtoExpenseQuery> dtoExpenseQueryList = new ArrayList<>();
+
+        //consultar todos los gastos de la base de datos
+        List<ExpenseEntity> expenseEntityList = expenseRepository.findAll();
+
+        //agrergar a la lista de gastos solo los que esten activos
+        for (ExpenseEntity expenseEntity:expenseEntityList){
+            if (!expenseEntity.getEnabled()){
+                continue;
+            }
+            dtoExpenseQuery= getExpenseById(expenseEntity.getId());
+            if (expenseType != null && !dtoExpenseQuery.getExpenseType().equalsIgnoreCase(expenseType)){
+                continue;
+            }
+            if (category != null && !dtoExpenseQuery.getCategory().equalsIgnoreCase(category)){
+                continue;
+            }
+            if (provider != null && !dtoExpenseQuery.getProvider().equalsIgnoreCase(provider)){
+                continue;
+            }
+            if (dateFrom != null ){
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                try {
+                    LocalDate from = LocalDate.parse(dateFrom, formatter);
+                    LocalDate created = LocalDate.parse(dtoExpenseQuery.getCreatedDatetime(), formatter);
+                    if (created.isBefore(from)) {
+                        continue;
+                    }
+                } catch (DateTimeParseException e) {
+                    e.printStackTrace();
+                    throw new CustomException("The date format is not correct", HttpStatus.BAD_REQUEST);
+                }
+            }
+            if (dateTo != null ){
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                try {
+                    LocalDate to = LocalDate.parse(dateTo, formatter);
+                    LocalDate created = LocalDate.parse(dtoExpenseQuery.getCreatedDatetime(), formatter);
+                    if (created.isAfter(to)) {
+                        continue;
+                    }
+                } catch (DateTimeParseException e) {
+                    e.printStackTrace();
+                    throw new CustomException("The date format is not correct", HttpStatus.BAD_REQUEST);
+                }
+            }
+
+            dtoExpenseQueryList.add(dtoExpenseQuery);
+        }
+
+        return dtoExpenseQueryList;
+    }
+    private String getOwnerFullName(Integer ownerId) {
+        //buscar en la api de propietarios el nombre del propietario por cada expensa que venga
+        String ownerFullName="";
+        String url="https://my-json-server.typicode.com/405786MoroBenjamin/users-responses/owners?id=";
+        String response= restTemplate.getForObject(url+ownerId, String.class);
+
+        try {
+            List<HashMap<String, Object>> seccionMapList = objectMapper.readValue(response, List.class);
+            for (HashMap<String, Object> seccionMap : seccionMapList) {
+                ownerFullName= (String) seccionMap.get("name");
+                ownerFullName+=" "+(String) seccionMap.get("surname");
+            }
+        }catch (IOException e) {
+            e.printStackTrace();
+            throw new CustomException("The owner does not exist", HttpStatus.NOT_FOUND);
+        }
+        return ownerFullName;
+    }
+    public String getProvider(int providerId) {
+        //buscar en la api de proveedores el nombre del proveedor por cada expensa que venga
+//        String providerName="";
+//        String url="https://my-json-server.typicode.com/405786MoroBenjamin/users-responses/providers?id=";
+//        String response= restTemplate.getForObject(url+providerId, String.class);
+//
+//        try {
+//            List<HashMap<String, Object>> seccionMapList = objectMapper.readValue(response, List.class);
+//            for (HashMap<String, Object> seccionMap : seccionMapList) {
+//                providerName= (String) seccionMap.get("name");
+//            }
+//        }catch (IOException e) {
+//            e.printStackTrace();
+//            throw new CustomException("The provider does not exist", HttpStatus.NOT_FOUND);
+//        }
+        //return providerName;
+        return "empresa anonima";
+
+    }
 }
