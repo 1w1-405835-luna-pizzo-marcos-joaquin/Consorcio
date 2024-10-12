@@ -13,8 +13,6 @@ import java.time.LocalDateTime;
 public class ExpenseDistributionModel {
     private Integer id;
     private Integer ownerId;
-    //TODO @Santi expenseModel me parece recursivo
-    //private ExpenseModel expenseModel;
     private BigDecimal proportion;
     private LocalDateTime createdDatetime;
     private Integer createdUser;

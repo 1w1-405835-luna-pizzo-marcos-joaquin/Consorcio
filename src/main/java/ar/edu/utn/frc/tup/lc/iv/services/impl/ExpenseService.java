@@ -26,7 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -51,7 +50,7 @@ public class ExpenseService implements IExpenseService {
     @Autowired
     private FileServerRestClient fileServerRestClient;
     @Autowired
-    private BillExpensesInstallmentsRepository billExpensesInstallmentsRepository;
+    private BillExpenseInstallmentsRepository billExpenseInstallmentsRepository;
     @Autowired
     private ObjectMapper objectMapper;
     @Autowired
@@ -158,8 +157,6 @@ public class ExpenseService implements IExpenseService {
             expenseInstallmentModel.setEnabled(Boolean.TRUE);
             expenseInstallmentModel.setCreatedDatetime(LocalDateTime.now());
             expenseInstallmentModel.setCreatedUser(1);
-            //TODO @Santi esto necesito que se pruebe asi, con esto comentado
-            //expenseInstallmentModel.setExpenseModel(expenseModel);
             if (installments.equals(1)) {
                 expenseInstallmentModel.setPaymentDate(LocalDate.now());
             } else {
@@ -316,6 +313,7 @@ public class ExpenseService implements IExpenseService {
         DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
         List<DtoExpenseQuery> dtoExpenseQueryList = new ArrayList<>();
 
+        //TODO FILTRAR EN EL REPO POR FECHA ASI NO TRAES TODO
         //consultar todos los gastos de la base de datos
         List<ExpenseEntity> expenseEntityList = expenseRepository.findAll();
 
@@ -365,6 +363,7 @@ public class ExpenseService implements IExpenseService {
         }
         return dtoExpenseQueryList;
     }
+    //TODO MOVER LOS RESTTEMPLATE A CLIENT
     private String getOwnerFullName(Integer ownerId) {
         //buscar en la api de propietarios el nombre del propietario por cada expensa que venga
         String ownerFullName="";
@@ -410,7 +409,7 @@ public class ExpenseService implements IExpenseService {
             }
 
             ExpenseEntity expenseEntity = expenseEntityOptional.get();
-            Optional<List<BillExpenseInstallmentsEntity>> billExpenseInstallmentsEntity = billExpensesInstallmentsRepository.findByExpenseId(id);
+            Optional<List<BillExpenseInstallmentsEntity>> billExpenseInstallmentsEntity = billExpenseInstallmentsRepository.findByExpenseId(id);
 
             if (billExpenseInstallmentsEntity.map(List::isEmpty).orElse(true)) {
                 performLogicalDeletion(expenseEntity);
@@ -440,7 +439,7 @@ public class ExpenseService implements IExpenseService {
             }
 
             ExpenseEntity expenseEntity = expenseEntityOptional.get();
-            Optional<List<BillExpenseInstallmentsEntity>> billExpenseInstallmentsEntity = billExpensesInstallmentsRepository.findByExpenseId(id);
+            Optional<List<BillExpenseInstallmentsEntity>> billExpenseInstallmentsEntity = billExpenseInstallmentsRepository.findByExpenseId(id);
 
             if (billExpenseInstallmentsEntity.isPresent()) {
                 int sizeOfInstallments = billExpenseInstallmentsEntity.get().size();

@@ -24,7 +24,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,7 +45,7 @@ class ExpenseServiceTest {
     @Mock
     private ExpenseCategoryService expenseCategoryService;
     @Mock
-    private BillExpensesInstallmentsRepository billExpensesInstallmentsRepository;
+    private BillExpenseInstallmentsRepository billExpenseInstallmentsRepository;
     @Mock
     private FileServerRestClient fileServerRestClient; //mock this when file server works
 
@@ -209,7 +208,7 @@ class ExpenseServiceTest {
         Integer expenseId = 1;
         ExpenseEntity expenseEntity = new ExpenseEntity();
         when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expenseEntity));
-        when(billExpensesInstallmentsRepository.findByExpenseId(expenseId))
+        when(billExpenseInstallmentsRepository.findByExpenseId(expenseId))
                 .thenReturn(Optional.of(Collections.singletonList(new BillExpenseInstallmentsEntity())));
 
         CustomException exception = assertThrows(CustomException.class, () -> {
@@ -225,7 +224,7 @@ class ExpenseServiceTest {
         Integer expenseId = 1;
         ExpenseEntity expenseEntity = new ExpenseEntity();
         when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expenseEntity));
-        when(billExpensesInstallmentsRepository.findByExpenseId(expenseId)).thenReturn(Optional.empty());
+        when(billExpenseInstallmentsRepository.findByExpenseId(expenseId)).thenReturn(Optional.empty());
 
         expenseService.deteleExpense(expenseId);
 
@@ -257,7 +256,7 @@ class ExpenseServiceTest {
         when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expenseEntity));
         when(expenseInstallmentRepository.save(any())).thenReturn(new ExpenseInstallmentEntity());
         BillExpenseInstallmentsEntity installmentEntity = new BillExpenseInstallmentsEntity();
-        when(billExpensesInstallmentsRepository.findByExpenseId(expenseId))
+        when(billExpenseInstallmentsRepository.findByExpenseId(expenseId))
                 .thenReturn(Optional.of(Collections.singletonList(installmentEntity)));
 
         expenseService.createCreditNoteForExpense(expenseId);

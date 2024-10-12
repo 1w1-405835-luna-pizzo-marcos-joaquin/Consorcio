@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface BillExpenseInstallmentsRepository extends JpaRepository<BillExpenseInstallmentsEntity,Integer> {
     @Query(value = "SELECT bei.id, e.expense_type " +
@@ -16,4 +17,10 @@ public interface BillExpenseInstallmentsRepository extends JpaRepository<BillExp
             "INNER JOIN expenses e ON e.id = ei.expense_id " +
             "WHERE br.id = :billRecordId", nativeQuery = true)
     List<Object[]> findInstallmentIdAndExpenseTypeByBillRecordId(@Param("billRecordId") Integer billRecordId);
+
+    //TODO OJO ACA FILTRAR BILLRECORD ENABLED Y BILLEXPENSEINSTALLMENTS ENABLE
+    @Query("SELECT bei FROM BillExpenseInstallmentsEntity bei " +
+            "JOIN bei.expenseInstallment ei " +
+            "WHERE ei.expense.id = :expenseId")
+    Optional<List<BillExpenseInstallmentsEntity>> findByExpenseId(@Param("expenseId") Integer expenseId);
 }

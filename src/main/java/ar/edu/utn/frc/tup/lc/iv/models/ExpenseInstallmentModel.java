@@ -12,8 +12,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ExpenseInstallmentModel {
     private Integer id;
-    //TODO @Santi expenseModel me parece recursivo
-    //private ExpenseModel expenseModel;
     private LocalDate paymentDate;
     private Integer installmentNumber;
     private LocalDateTime createdDatetime;

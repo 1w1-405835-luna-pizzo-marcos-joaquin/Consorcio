@@ -26,7 +26,7 @@ FROM (
          SELECT 'Pintura de fachada' AS description, '2024-03-01' AS expense_date, 'COMUN' AS expense_type,
                 'Mantenimiento' AS category, 5000.00 AS amount, 1 AS installments, 1 AS created_user, 1 AS last_updated_user
          UNION ALL
-         SELECT 'Reparación ascensor', '2024-03-15', 'EXTRAORDINARIA',
+         SELECT 'Reparación ascensor', '2024-03-15', 'EXTRAORDINARIO',
                 'Reparaciones', 8000.00, 2, 1, 1
          UNION ALL
          SELECT 'Servicio de limpieza', '2024-04-01', 'INDIVIDUAL',
