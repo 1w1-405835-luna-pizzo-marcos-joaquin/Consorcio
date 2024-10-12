@@ -26,10 +26,20 @@ public class ExpenseDistributionController {
             description = "Get all expenses ")
     @ApiResponse(responseCode = "200", description = "get all successfully",
             content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = ExpenseDistributionEntity.class)))
+                    schema = @Schema(implementation = ExpenseOwnerVisualizerDTO.class)))
     @GetMapping("/getAll")
     public ResponseEntity<List<ExpenseOwnerVisualizerDTO>> getAllExpenses(){
         List<ExpenseOwnerVisualizerDTO> list = expenseDistributionService.findAll();
+        return ResponseEntity.ok(list);
+    }
+    @Operation(summary = "Get ALL Expenses by Id",
+            description = "Get all expenses by Id")
+    @ApiResponse(responseCode = "200", description = "get all successfully",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ExpenseOwnerVisualizerDTO.class)))
+    @GetMapping("/getAllByOwnerId")
+    public ResponseEntity<List<ExpenseOwnerVisualizerDTO>> getAllExpensesById(Integer id){
+        List<ExpenseOwnerVisualizerDTO> list = expenseDistributionService.findByOwnerId(id);
         return ResponseEntity.ok(list);
     }
 

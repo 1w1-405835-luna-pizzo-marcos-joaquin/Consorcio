@@ -35,6 +35,13 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
         return expenseOwnerVisualizerDTOList;
     }
 
+    public List<ExpenseOwnerVisualizerDTO> findByOwnerId(Integer ownerId) {
+        List<ExpenseDistributionEntity> entities = repository.findAllByOwnerId(ownerId);
+        return entities.stream()
+                .map(this::entityDistributiontoDto)
+                .collect(Collectors.toList());
+    }
+
     @Override
     public List<ExpenseOwnerVisualizerDTO> filterExpenses(Integer ownerId, LocalDate startDate, LocalDate endDate, ExpenseType expenseType,
           Integer categoryId, String description, BigDecimal amountFrom, BigDecimal amountTo){

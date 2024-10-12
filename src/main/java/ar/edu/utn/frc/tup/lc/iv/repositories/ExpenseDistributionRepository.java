@@ -17,4 +17,7 @@ import java.util.List;
 public interface ExpenseDistributionRepository extends JpaRepository<ExpenseDistributionEntity,Integer> {
     @Query("SELECT DISTINCT e FROM ExpenseDistributionEntity e")
     List<ExpenseDistributionEntity> findAllDistinct();
+    List<ExpenseDistributionEntity> findAllByOwnerId(Integer ownerId);
+
+
 }
