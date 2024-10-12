@@ -22,6 +22,8 @@ public class ExpenseDistributionController {
     @Autowired
     private ExpenseDistributionService expenseDistributionService;
 
+
+    //TODO ESTE SACARLO
     @Operation(summary = "Get ALL Expenses",
             description = "Get all expenses ")
     @ApiResponse(responseCode = "200", description = "get all successfully",
@@ -32,6 +34,9 @@ public class ExpenseDistributionController {
         List<ExpenseOwnerVisualizerDTO> list = expenseDistributionService.findAll();
         return ResponseEntity.ok(list);
     }
+
+
+    //TODO AGREGAR FILTRO DE FECHAS REQUERIDO
     @Operation(summary = "Get ALL Expenses by Id",
             description = "Get all expenses by Id")
     @ApiResponse(responseCode = "200", description = "get all successfully",
