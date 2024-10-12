@@ -71,7 +71,7 @@ public class ExpenseService implements IExpenseService {
         List<ExpenseEntity> expenseEntities = expenseRepository.findAllByPaymentDate(from,to);
         List<ExpenseModel> result = new ArrayList<>();
         for (ExpenseEntity expenseEntity : expenseEntities) {
-            result.add(exepnseEntityToModel(expenseEntity));
+            result.add(modelMapper.map(expenseEntity, ExpenseModel.class));
         }
         return result;
     }
@@ -144,7 +144,8 @@ public class ExpenseService implements IExpenseService {
             expenseInstallmentModel.setEnabled(Boolean.TRUE);
             expenseInstallmentModel.setCreatedDatetime(LocalDateTime.now());
             expenseInstallmentModel.setCreatedUser(1);
-            expenseInstallmentModel.setExpenseModel(expenseModel);
+            //TODO @Santi esto necesito que se pruebe asi, con esto comentado
+            //expenseInstallmentModel.setExpenseModel(expenseModel);
             if (installments.equals(1)) {
                 expenseInstallmentModel.setPaymentDate(LocalDate.now());
             } else {
@@ -256,27 +257,4 @@ public class ExpenseService implements IExpenseService {
         return true;
     }
 
-
-    private ExpenseModel exepnseEntityToModel(ExpenseEntity expenseEntity) {
-        ExpenseModel expenseModel = new ExpenseModel();
-        expenseModel = modelMapper.map(expenseEntity, ExpenseModel.class);
-        expenseModel.setDistributions(new ArrayList<>());
-        expenseModel.setInstallmentsList(new ArrayList<>());
-
-        for (ExpenseInstallmentEntity installment : expenseEntity.getInstallmentsList()) {
-            expenseModel.getInstallmentsList().add(installmentEntityToModel(installment));
-        }
-        for (ExpenseDistributionEntity distribution : expenseEntity.getDistributions()) {
-            expenseModel.getDistributions().add(distributionEntityToModel(distribution));
-        }
-        return expenseModel;
-    }
-    private ExpenseInstallmentModel installmentEntityToModel(ExpenseInstallmentEntity expenseInstallmentEntity) {
-        ExpenseInstallmentModel installmentModel = modelMapper.map(expenseInstallmentEntity, ExpenseInstallmentModel.class);
-        return installmentModel;
-    }
-    private ExpenseDistributionModel distributionEntityToModel(ExpenseDistributionEntity expenseDistributionEntity) {
-        ExpenseDistributionModel distributionModel = modelMapper.map(expenseDistributionEntity, ExpenseDistributionModel.class);
-        return distributionModel;
-    }
 }
