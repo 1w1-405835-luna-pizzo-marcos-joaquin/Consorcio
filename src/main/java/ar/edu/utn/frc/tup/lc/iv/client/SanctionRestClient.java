@@ -12,7 +12,7 @@ import java.util.List;
 @Service
 public class SanctionRestClient {
     private final RestTemplate restTemplate;
-    private static final String ROOT_URL = "";
+    private static final String ROOT_URL = "https://my-json-server.typicode.com/EbeltramoUtn/demoTP";
 
     @Autowired
     public SanctionRestClient(RestTemplate restTemplate) {

@@ -9,14 +9,14 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class OwnerRestClient {
     private final RestTemplate restTemplate;
-    private static final String ROOT_URL = "";
+    private static final String ROOT_URL = "https://my-json-server.typicode.com/EbeltramoUtn/demoTP";
     @Autowired
     public OwnerRestClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
     public ResponseEntity<OwnerDto[]> getOwnerPlot() {
-        String url = ROOT_URL + "/ownerPlot";
+        String url = ROOT_URL + "/owners";
         return restTemplate.getForEntity(url, OwnerDto[].class);
     }
 }
