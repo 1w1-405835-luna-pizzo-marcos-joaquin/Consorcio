@@ -52,7 +52,10 @@ public class ExpenseService implements IExpenseService {
         if (expenseValid) {
             ExpenseModel expenseModel = setDataToExpenseModel(request);
             List<ExpenseInstallmentModel> expenseInstallmentModels = setExpenseInstallmentModels(request, expenseModel);
-            List<ExpenseDistributionModel> expenseDistributionModels = setExpenseDistributionModels(request);
+            List<ExpenseDistributionModel> expenseDistributionModels = new ArrayList<>();
+            if(ExpenseType.valueOf(request.getTypeExpense()).equals(ExpenseType.INDIVIDUAL)) {
+                expenseInstallmentModels = setExpenseInstallmentModels(request, expenseModel);
+            }
             expenseModel.setInstallmentsList(expenseInstallmentModels);
             expenseModel.setDistributions(expenseDistributionModels);
             UUID fileId = UUID.randomUUID();
@@ -108,6 +111,7 @@ public class ExpenseService implements IExpenseService {
         dtoResponseExpense.setExpenseDate(expenseModel.getExpenseDate());
         dtoResponseExpense.setExpenseType(expenseModel.getExpenseType());
         dtoResponseExpense.setDescription(expenseModel.getDescription());
+        dtoResponseExpense.setFileId(expenseModel.getFileId());
         DtoCategory dtoCategory = new DtoCategory();
         dtoCategory.setId(expenseModel.getCategory().getId());
         dtoCategory.setDescription(expenseModel.getCategory().getDescription());
