@@ -143,8 +143,8 @@ AFTER INSERT ON bills_expense_fines
 FOR EACH ROW
 BEGIN
   -- Insertar la primera versión en la tabla de auditoría
-  INSERT INTO bills_expense_fines_audit (id, bill_expense_owner_id, fine_id, amount, created_datetime, created_user, last_updated_datetime, last_updated_user, enabled, version)
-  VALUES (NEW.id, NEW.bill_expense_owner_id, NEW.fine_id, NEW.amount, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.enabled, 1);
+  INSERT INTO bills_expense_fines_audit (id, description,bill_expense_owner_id, fine_id, amount, created_datetime, created_user, last_updated_datetime, last_updated_user, enabled, version)
+  VALUES (NEW.id, NEW.description,NEW.bill_expense_owner_id, NEW.fine_id, NEW.amount, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.enabled, 1);
 END$$
 
 -- Trigger para bills_expense_fines (UPDATE)
@@ -156,8 +156,8 @@ BEGIN
   DECLARE last_version INT;
   SELECT MAX(version) INTO last_version FROM bills_expense_fines_audit WHERE id = NEW.id;
   
-  INSERT INTO bills_expense_fines_audit (id, bill_expense_owner_id, fine_id, amount, created_datetime, created_user, last_updated_datetime, last_updated_user, enabled, version)
-  VALUES (NEW.id, NEW.bill_expense_owner_id, NEW.fine_id, NEW.amount, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.enabled, last_version + 1);
+  INSERT INTO bills_expense_fines_audit (id, description,bill_expense_owner_id, fine_id, amount, created_datetime, created_user, last_updated_datetime, last_updated_user, enabled, version)
+  VALUES (NEW.id,NEW.description,NEW.bill_expense_owner_id, NEW.fine_id, NEW.amount, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.enabled, last_version + 1);
 END$$
 
 -- Trigger para bills_expense_installments (INSERT)
@@ -166,8 +166,8 @@ AFTER INSERT ON bills_expense_installments
 FOR EACH ROW
 BEGIN
   -- Insertar la primera versión en la tabla de auditoría
-  INSERT INTO bills_expense_installments_audit (id, bill_expense_owner_id, expense_installment_id, amount, created_datetime, created_user, last_updated_datetime, last_updated_user, enabled, version)
-  VALUES (NEW.id, NEW.bill_expense_owner_id, NEW.expense_installment_id, NEW.amount, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.enabled, 1);
+  INSERT INTO bills_expense_installments_audit (id, description,bill_expense_owner_id, expense_installment_id, amount, created_datetime, created_user, last_updated_datetime, last_updated_user, enabled, version)
+  VALUES (NEW.id, NEW.description,NEW.bill_expense_owner_id, NEW.expense_installment_id, NEW.amount, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.enabled, 1);
 END$$
 
 -- Trigger para bills_expense_installments (UPDATE)
@@ -179,7 +179,7 @@ BEGIN
   DECLARE last_version INT;
   SELECT MAX(version) INTO last_version FROM bills_expense_installments_audit WHERE id = NEW.id;
   
-  INSERT INTO bills_expense_installments_audit (id, bill_expense_owner_id, expense_installment_id, amount, created_datetime, created_user, last_updated_datetime, last_updated_user, enabled, version)
-  VALUES (NEW.id, NEW.bill_expense_owner_id, NEW.expense_installment_id, NEW.amount, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.enabled, last_version + 1);
+  INSERT INTO bills_expense_installments_audit (id, description,bill_expense_owner_id, expense_installment_id, amount, created_datetime, created_user, last_updated_datetime, last_updated_user, enabled, version)
+  VALUES (NEW.id, NEW.description,NEW.bill_expense_owner_id, NEW.expense_installment_id, NEW.amount, NEW.created_datetime, NEW.created_user, NEW.last_updated_datetime, NEW.last_updated_user, NEW.enabled, last_version + 1);
 END$$
 DELIMITER ;
