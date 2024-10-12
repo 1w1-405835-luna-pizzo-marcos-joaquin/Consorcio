@@ -18,5 +18,9 @@ public interface IExpenseService {
     public DtoExpenseQuery getExpenseById(Integer expenseId);
     public List<DtoExpenseQuery> getExpenses(String expenseType, String category, String provider, String dateFrom, String dateTo);
     ResponseEntity<DtoResponseExpense> postExpense(DtoRequestExpense request, MultipartFile file);
-    List<ExpenseModel> getExpenseByPaymentDateRange(LocalDate from, LocalDate to);
+
+    void deteleExpense(Integer id);
+
+    void createCreditNoteForExpense(Integer id);
+    List<ExpenseModel> getExpenseByPaymentDateRange(LocalDate startDate, LocalDate endDate);
 }

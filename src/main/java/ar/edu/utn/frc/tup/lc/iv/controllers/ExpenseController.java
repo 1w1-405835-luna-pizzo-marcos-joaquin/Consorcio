@@ -39,6 +39,23 @@ public class ExpenseController {
         return expenseService.postExpense(request, file);
     }
 
+    @Operation(summary = "Delete logic or expense")
+    @ApiResponse(responseCode = "204", description = "Expense delete logic successfully",
+    content = @Content(mediaType = "application/json"))
+    @DeleteMapping()
+    public ResponseEntity<Void> deleteExpenseByIdLogicOrThrowException(@RequestParam Integer id) {
+        expenseService.deteleExpense(id);
+        return ResponseEntity.noContent().build();
+    }
+    @Operation(summary = "Create note of credit")
+    @ApiResponse(responseCode = "204", description = "Note of credit created succcessfully",
+            content = @Content(mediaType = "application/json"))
+    @DeleteMapping("/note_credit")
+    public ResponseEntity<Void> createNoteOfCredit(@RequestParam Integer id) {
+        expenseService.createCreditNoteForExpense(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/getById")
     @Operation(summary = "Get expense by id")
     @ApiResponse(responseCode = "200", description = "Expenses get successfully",

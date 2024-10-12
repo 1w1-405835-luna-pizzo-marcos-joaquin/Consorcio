@@ -3,6 +3,7 @@ package ar.edu.utn.frc.tup.lc.iv.services.impl;
 import ar.edu.utn.frc.tup.lc.iv.comunication.FileServerRestClient;
 import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.*;
+import ar.edu.utn.frc.tup.lc.iv.entities.BillExpenseInstallmentsEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseDistributionEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseInstallmentEntity;
@@ -11,11 +12,9 @@ import ar.edu.utn.frc.tup.lc.iv.models.ExpenseCategoryModel;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseDistributionModel;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseInstallmentModel;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseModel;
-import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseCategoryRepository;
-import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseDistributionRepository;
-import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseInstallmentRepository;
-import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseRepository;
+import ar.edu.utn.frc.tup.lc.iv.repositories.*;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseService;
+import jakarta.transaction.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -51,12 +51,14 @@ public class ExpenseService implements IExpenseService {
     @Autowired
     private FileServerRestClient fileServerRestClient;
     @Autowired
+    private BillExpensesInstallmentsRepository billExpensesInstallmentsRepository;
+    @Autowired
     private ObjectMapper objectMapper;
     @Autowired
     private RestTemplate restTemplate;
 
 
-    @Override
+    @Transactional
     public ResponseEntity<DtoResponseExpense> postExpense(DtoRequestExpense request, MultipartFile file) {
         Boolean expenseValid = fetchValidExpenseModel(request, file);
         if (expenseValid) {
@@ -68,7 +70,7 @@ public class ExpenseService implements IExpenseService {
             }
             expenseModel.setInstallmentsList(expenseInstallmentModels);
             expenseModel.setDistributions(expenseDistributionModels);
-            UUID fileId = UUID.randomUUID();
+            UUID fileId = UUID.randomUUID();//TODO FILE SERVER
             expenseModel.setFileId(fileId);
             DtoResponseExpense dtoResponseExpense = setDtoResponseExpense(expenseModel);
             saveExpenseEntity(expenseModel, expenseInstallmentModels, expenseDistributionModels);
@@ -114,7 +116,6 @@ public class ExpenseService implements IExpenseService {
         }
 
     }
-
 
     private DtoResponseExpense setDtoResponseExpense(ExpenseModel expenseModel) {
         DtoResponseExpense dtoResponseExpense = new DtoResponseExpense();
@@ -258,7 +259,7 @@ public class ExpenseService implements IExpenseService {
             throw new CustomException("Installments must be greater than zero", HttpStatus.BAD_REQUEST);
         }
 
-        if (request.getDistributions() == null || request.getDistributions().isEmpty()) {
+        if (request.getDistributions().isEmpty() && request.getTypeExpense().equals(ExpenseType.INDIVIDUAL.toString())) {
             throw new CustomException("Distributions cannot be empty", HttpStatus.BAD_REQUEST);
         }
         if (file != null) {
@@ -362,7 +363,6 @@ public class ExpenseService implements IExpenseService {
 
             dtoExpenseQueryList.add(dtoExpenseQuery);
         }
-
         return dtoExpenseQueryList;
     }
     private String getOwnerFullName(Integer ownerId) {
@@ -401,5 +401,137 @@ public class ExpenseService implements IExpenseService {
         //return providerName;
         return "empresa anonima";
 
-    }
 }
+        @Override
+        public void deteleExpense(Integer id) {
+            Optional<ExpenseEntity> expenseEntityOptional = expenseRepository.findById(id);
+            if (expenseEntityOptional.isEmpty()) {
+                throw new CustomException("The expense does not exist", HttpStatus.BAD_REQUEST);
+            }
+
+            ExpenseEntity expenseEntity = expenseEntityOptional.get();
+            Optional<List<BillExpenseInstallmentsEntity>> billExpenseInstallmentsEntity = billExpensesInstallmentsRepository.findByExpenseId(id);
+
+            if (billExpenseInstallmentsEntity.map(List::isEmpty).orElse(true)) {
+                performLogicalDeletion(expenseEntity);
+            } else {
+                throw new CustomException("Expense has related bill installments", HttpStatus.CONFLICT);
+            }
+        }
+
+
+        /**
+         * Método que realiza la baja lógica del gasto si no tiene cobros relacionados.
+         */
+        private void performLogicalDeletion(ExpenseEntity expenseEntity) {
+            expenseEntity.setEnabled(Boolean.FALSE);
+            expenseRepository.save(expenseEntity);
+        }
+
+        /**
+         * Método que genera una nota de crédito en caso de existir cobros relacionados.
+         */
+        @Transactional
+        public void createCreditNoteForExpense(Integer id) {
+
+            Optional<ExpenseEntity> expenseEntityOptional = expenseRepository.findById(id);
+            if (expenseEntityOptional.get().getNoteCredit()) {
+                throw new CustomException("The expense have a note of credit", HttpStatus.CONFLICT);
+            }
+
+            ExpenseEntity expenseEntity = expenseEntityOptional.get();
+            Optional<List<BillExpenseInstallmentsEntity>> billExpenseInstallmentsEntity = billExpensesInstallmentsRepository.findByExpenseId(id);
+
+            if (billExpenseInstallmentsEntity.isPresent()) {
+                int sizeOfInstallments = billExpenseInstallmentsEntity.get().size();
+                BigDecimal amount = expenseEntity.getAmount().negate();
+                LocalDate paymentDate = LocalDate.now();
+
+                ExpenseEntity newExpenseEntity = createCreditNoteEntity(expenseEntity);
+                expenseRepository.save(newExpenseEntity);
+
+                List<ExpenseInstallmentEntity> expenseInstallmentEntityList = createInstallments(newExpenseEntity, sizeOfInstallments, paymentDate);
+                if(!expenseEntity.getDistributions().isEmpty())
+                {
+                    List<ExpenseDistributionEntity> newExpenseDistributionList = new ArrayList<>();
+
+                    for (ExpenseDistributionEntity originalDistribution : expenseEntity.getDistributions()) {
+                        ExpenseDistributionEntity newDistribution = new ExpenseDistributionEntity();
+                        newDistribution.setProportion(originalDistribution.getProportion());
+                        newDistribution.setExpense(newExpenseEntity);
+                        newDistribution.setLastUpdatedUser(1);
+                        newDistribution.setLastUpdatedDatetime(LocalDateTime.now());
+                        newDistribution.setCreatedDatetime(LocalDateTime.now());
+                        newDistribution.setCreatedUser(1);
+                        newDistribution.setEnabled(Boolean.TRUE);
+                        newDistribution.setOwnerId(originalDistribution.getOwnerId());
+                        newExpenseDistributionList.add(newDistribution);
+
+                    }
+
+                    expenseDistributionRepository.saveAll(newExpenseDistributionList);
+                }
+                saveInstallments(expenseInstallmentEntityList, newExpenseEntity);
+            }
+        }
+
+        /**
+         * Método que crea una entidad de gasto para la nota de crédito.
+         */
+        private ExpenseEntity createCreditNoteEntity(ExpenseEntity originalExpenseEntity) {
+            ExpenseEntity newExpenseEntity = new ExpenseEntity();
+            newExpenseEntity.setExpenseType(ExpenseType.NOTE_OF_CREDIT);
+            newExpenseEntity.setEnabled(Boolean.TRUE);
+            newExpenseEntity.setExpenseDate(LocalDate.now());
+            newExpenseEntity.setDescription("Note of credit"); // description??
+            newExpenseEntity.setDistributions(new ArrayList<>());
+            newExpenseEntity.setAmount(originalExpenseEntity.getAmount().negate());
+            newExpenseEntity.setFileId(originalExpenseEntity.getFileId());
+            newExpenseEntity.setCategory(originalExpenseEntity.getCategory());
+            newExpenseEntity.setInvoiceNumber(originalExpenseEntity.getInvoiceNumber());
+            newExpenseEntity.setProviderId(originalExpenseEntity.getProviderId());
+            newExpenseEntity.setCreatedDatetime(LocalDateTime.now());
+            newExpenseEntity.setCreatedUser(1);
+            newExpenseEntity.setLastUpdatedDatetime(LocalDateTime.now());
+            newExpenseEntity.setLastUpdatedUser(1);
+            newExpenseEntity.setInstallments(originalExpenseEntity.getInstallments());
+            newExpenseEntity.setInstallmentsList(new ArrayList<>());
+
+            return newExpenseEntity;
+        }
+
+        /**
+         * Método que crea las cuotas para la nueva nota de crédito.
+         */
+        private List<ExpenseInstallmentEntity> createInstallments(ExpenseEntity newExpenseEntity, int sizeOfInstallments, LocalDate paymentDate) {
+            List<ExpenseInstallmentEntity> expenseInstallmentEntityList = new ArrayList<>();
+
+            for (int i = 0; i < sizeOfInstallments; i++) {
+                ExpenseInstallmentEntity installment = new ExpenseInstallmentEntity();
+                installment.setExpense(newExpenseEntity);
+                installment.setInstallmentNumber(i + 1);
+                installment.setCreatedDatetime(LocalDateTime.now());
+                installment.setEnabled(Boolean.TRUE);
+                installment.setPaymentDate(paymentDate.plusMonths(i));
+                installment.setCreatedUser(1);
+                installment.setLastUpdatedDatetime(LocalDateTime.now());
+                installment.setLastUpdatedUser(1);
+
+                expenseInstallmentEntityList.add(installment);
+            }
+
+            return expenseInstallmentEntityList;
+        }
+
+        /**
+         * Método que guarda las cuotas en la base de datos.
+         */
+        private void saveInstallments(List<ExpenseInstallmentEntity> expenseInstallmentEntityList, ExpenseEntity newExpenseEntity) {
+            for (ExpenseInstallmentEntity expenseInstallmentEntity : expenseInstallmentEntityList) {
+                expenseInstallmentEntity.setExpense(newExpenseEntity);
+                expenseInstallmentRepository.save(expenseInstallmentEntity);
+            }
+        }
+
+
+    }
