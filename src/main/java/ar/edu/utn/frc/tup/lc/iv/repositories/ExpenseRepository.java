@@ -27,4 +27,5 @@ public interface ExpenseRepository extends JpaRepository<ExpenseEntity,Integer> 
      */
     @Query("select e from ExpenseEntity e where e.expenseDate between :from and :to and e.enabled")
     List<ExpenseEntity> findAllByDate(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
 }
