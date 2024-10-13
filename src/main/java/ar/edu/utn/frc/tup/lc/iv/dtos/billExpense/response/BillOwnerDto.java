@@ -18,7 +18,12 @@ public class BillOwnerDto {
     private Integer fieldSize;
     @JsonProperty("fines")
     private List<ItemDto> fines;
-    private List<ItemDto> expenses_common;
-    private List<ItemDto> expenses_extraordinary;
-    private List<ItemDto> expenses_individual;
+    @JsonProperty("expenses_common")
+    private List<ItemDto> expensesCommon;
+    @JsonProperty("expenses_extraordinary")
+    private List<ItemDto> expensesExtraordinary;
+    @JsonProperty("expenses_individual")
+    private List<ItemDto> expensesIndividual;
+    @JsonProperty("notes_credit")
+    private List<ItemDto> notesOfCredit;
 }
