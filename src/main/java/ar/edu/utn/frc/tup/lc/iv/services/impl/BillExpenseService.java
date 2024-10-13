@@ -18,7 +18,6 @@ import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
 import ar.edu.utn.frc.tup.lc.iv.models.*;
 import ar.edu.utn.frc.tup.lc.iv.repositories.BillExpenseInstallmentsRepository;
 import ar.edu.utn.frc.tup.lc.iv.repositories.BillRecordRepository;
-import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseRepository;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IBillExpenseService;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseService;
 import org.modelmapper.ModelMapper;
@@ -28,13 +27,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.Console;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
-//TODO Ojo que se me agrego EXPENSE_TYPE NoteCredit debo verificar en que me molestas
 @Service
 public class BillExpenseService implements IBillExpenseService {
 
@@ -147,6 +144,9 @@ public class BillExpenseService implements IBillExpenseService {
 
     /**
      * Calculates the BillExpense for a specified period by distributing expenses among the owners.
+     * This version optimizes the expense distribution by combining the logic for individual,
+     * non-individual, and note of credit expenses into a single loop.
+     *
      * @param periodDto {@link PeriodDto} Contains the start and end date for the period.
      * @return {@link BillRecordModel} The calculated bill.
      */
@@ -165,14 +165,15 @@ public class BillExpenseService implements IBillExpenseService {
         // Calculate total field size across all owners
         Integer totalSize = result.getBillExpenseOwner().stream().mapToInt(BillExpenseOwnerModel::getFieldSize).sum();
 
-        // Distribute non-individual expenses proportionally
-        for (ExpenseModel expense : expenseModels.stream().filter(m -> !m.getExpenseType().equals(ExpenseType.INDIVIDUAL)).toList()) {
-            expensesDistributionNotIndividual(result, expense, totalSize);
-        }
-
-        // Distribute individual expenses based on specified proportions
-        for (ExpenseModel expense : expenseModels.stream().filter(m -> m.getExpenseType().equals(ExpenseType.INDIVIDUAL)).toList()) {
-            expensesDistributionIndividual(result, expense);
+        // Iterate over all expenses and handle both individual and non-individual types in a single loop
+        for (ExpenseModel expense : expenseModels) {
+            if (expense.getDistributions().isEmpty()) {
+                // Handle non-individual expenses and note of credit without specific distributions
+                expensesDistributionNotIndividual(result, expense, totalSize);
+            } else {
+                // Handle individual expenses and note of credit with specific distributions
+                expensesDistributionIndividual(result, expense);
+            }
         }
 
         return result;
@@ -267,6 +268,7 @@ public class BillExpenseService implements IBillExpenseService {
             expensesDistribution(billExpenseOwnerModel, expenseModel, billRecordModel.getStart(), billRecordModel.getEnd(), amountToProportion);
         }
     }
+
 
     /**
      * Distributes the specified amount of an expense to an owner's installments, adjusting for the billing period.
@@ -437,10 +439,11 @@ public class BillExpenseService implements IBillExpenseService {
         BillOwnerDto ownerDto = BillOwnerDto.builder()
                 .id(ownerModel.getId())
                 .fieldSize(ownerModel.getFieldSize())
-                .expenses_common(new ArrayList<>())
-                .expenses_extraordinary(new ArrayList<>())
-                .expenses_individual(new ArrayList<>())
+                .expensesCommon(new ArrayList<>())
+                .expensesExtraordinary(new ArrayList<>())
+                .expensesIndividual(new ArrayList<>())
                 .fines(new ArrayList<>())
+                .notesOfCredit(new ArrayList<>())
                 .build();
 
         // Map fines and installments based on expense type
@@ -453,13 +456,20 @@ public class BillExpenseService implements IBillExpenseService {
                 throw new CustomException("Expense Type is not defined", HttpStatus.BAD_REQUEST);
             ExpenseType typeInstallment = ExpenseType.valueOf(type);
             if (typeInstallment.equals(ExpenseType.COMUN)) {
-                ownerDto.getExpenses_common().add(billInstallmentModelToDto(installmentModel));
+                ownerDto.getExpensesCommon().add(billInstallmentModelToDto(installmentModel));
+                continue;
             }
             if (typeInstallment.equals(ExpenseType.INDIVIDUAL)) {
-                ownerDto.getExpenses_individual().add(billInstallmentModelToDto(installmentModel));
+                ownerDto.getExpensesIndividual().add(billInstallmentModelToDto(installmentModel));
+                continue;
             }
             if (typeInstallment.equals(ExpenseType.EXTRAORDINARIO)) {
-                ownerDto.getExpenses_extraordinary().add(billInstallmentModelToDto(installmentModel));
+                ownerDto.getExpensesExtraordinary().add(billInstallmentModelToDto(installmentModel));
+                continue;
+            }
+            if (typeInstallment.equals(ExpenseType.NOTE_OF_CREDIT)) {
+                ownerDto.getNotesOfCredit().add(billInstallmentModelToDto(installmentModel));
+                continue;
             }
         }
 
