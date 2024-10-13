@@ -2,6 +2,7 @@ package ar.edu.utn.frc.tup.lc.iv.services.interfaces;
 
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoExpenseQuery;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoRequestExpense;
+import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoResponseDeleteExpense;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoResponseExpense;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseModel;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +20,8 @@ public interface IExpenseService {
     public List<DtoExpenseQuery> getExpenses(String expenseType, String category, String provider, String dateFrom, String dateTo);
     ResponseEntity<DtoResponseExpense> postExpense(DtoRequestExpense request, MultipartFile file);
 
-    void deteleExpense(Integer id);
+    DtoResponseDeleteExpense deteleExpense(Integer id);
 
-    void createCreditNoteForExpense(Integer id);
+    DtoResponseExpense createCreditNoteForExpense(Integer id);
     List<ExpenseModel> getExpenseByPaymentDateRange(LocalDate startDate, LocalDate endDate);
 }
