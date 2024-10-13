@@ -16,6 +16,9 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+    /**
+    * Data Transfer Object for querying expenses.
+    */
 public class DtoExpenseQuery {
     private int id;
     private String category;
@@ -27,6 +30,4 @@ public class DtoExpenseQuery {
     private String fileId;
     private List<DtoExpenseDistributionQuery> distributionList;
     private List<DtoExpenseInstallment> installmentList;
-
-
 }
