@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,10 +38,18 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
 
     public List<ExpenseOwnerVisualizerDTO> findByOwnerId(Integer ownerId) {
         List<ExpenseDistributionEntity> entities = repository.findAllByOwnerId(ownerId);
-        return entities.stream()
+        List<ExpenseOwnerVisualizerDTO> expenseOwnerVisualizerDTOList=   entities.stream()
                 .map(this::entityDistributiontoDto)
                 .collect(Collectors.toList());
+        for(ExpenseOwnerVisualizerDTO expenseOwner : expenseOwnerVisualizerDTOList){
+            BigDecimal amount = expenseOwner.getAmount();
+            BigDecimal proportion = expenseOwner.getProportion();
+            BigDecimal updatedAmount = amount.multiply(proportion);
+            expenseOwner.setAmount(updatedAmount);
+        }
+        return  expenseOwnerVisualizerDTOList;
     }
+
 
     @Override
     public List<ExpenseOwnerVisualizerDTO> filterExpenses(Integer ownerId, LocalDate startDate, LocalDate endDate, ExpenseType expenseType,

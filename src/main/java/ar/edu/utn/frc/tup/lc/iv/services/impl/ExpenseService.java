@@ -321,17 +321,19 @@ public class ExpenseService implements IExpenseService {
 
         DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
         List<DtoExpenseQuery> dtoExpenseQueryList = new ArrayList<>();
-
+        DateTimeFormatter formatter1 = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDate from1 = LocalDate.parse(dateFrom, formatter1);
+        LocalDate to1 = LocalDate.parse(dateTo, formatter1);
         //TODO FILTRAR EN EL REPO POR FECHA ASI NO TRAES TODO
         //consultar todos los gastos de la base de datos
-        List<ExpenseEntity> expenseEntityList = expenseRepository.findAll();
+        List<ExpenseEntity> expenseEntityList = expenseRepository.findAllByDate(from1,to1);
 
         //agrergar a la lista de gastos solo los que esten activos
         for (ExpenseEntity expenseEntity:expenseEntityList){
             if (!expenseEntity.getEnabled()){
                 continue;
             }
-            dtoExpenseQuery= getExpenseById(expenseEntity.getId());
+            dtoExpenseQuery= mapEntityToDtoExpense(expenseEntity);
             if (expenseType != null && !dtoExpenseQuery.getExpenseType().equalsIgnoreCase(expenseType)){
                 continue;
             }
@@ -372,10 +374,49 @@ public class ExpenseService implements IExpenseService {
         }
         return dtoExpenseQueryList;
     }
+
+    private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
+
+        DtoExpenseQuery  dtoExpenseQuery= modelMapper.map(expenseEntity, DtoExpenseQuery.class);
+
+        if (expenseEntity.getProviderId() != null) {
+            dtoExpenseQuery.setProvider(getProvider(expenseEntity.getProviderId()));
+        } else {
+            dtoExpenseQuery.setProvider("");
+        }
+
+        dtoExpenseQuery.setExpenseDate(expenseEntity.getExpenseDate());
+        dtoExpenseQuery.setFileId(expenseEntity.getFileId() != null ? expenseEntity.getFileId().toString() : null);
+        dtoExpenseQuery.setCategory(expenseEntity.getCategory().getDescription());
+        dtoExpenseQuery.setDistributionList(new ArrayList<>());
+        dtoExpenseQuery.setInstallmentList(new ArrayList<>());
+
+        for (ExpenseDistributionEntity distributionEntity : expenseEntity.getDistributions()) {
+            //get owner name and amount
+            String ownerName= getOwnerFullName(distributionEntity.getOwnerId());
+            BigDecimal amount = expenseEntity.getAmount().multiply(distributionEntity.getProportion());
+            //set owner name and amount to dto
+            DtoExpenseDistributionQuery dtoExpenseDistributionQuery = new DtoExpenseDistributionQuery();
+            dtoExpenseDistributionQuery.setOwnerFullName(ownerName);
+            dtoExpenseDistributionQuery.setAmount(amount);
+            dtoExpenseDistributionQuery.setOwnerId(distributionEntity.getOwnerId());
+            //add dto to list
+            dtoExpenseQuery.getDistributionList().add(dtoExpenseDistributionQuery);
+        }
+        for (ExpenseInstallmentEntity installmentEntity : expenseEntity.getInstallmentsList()) {
+            DtoExpenseInstallment dtoExpenseInstallment = new DtoExpenseInstallment();
+            dtoExpenseInstallment.setInstallmentNumber(installmentEntity.getInstallmentNumber());
+            dtoExpenseInstallment.setPaymentDate(installmentEntity.getPaymentDate());
+            dtoExpenseQuery.getInstallmentList().add(dtoExpenseInstallment);
+        }
+
+        return dtoExpenseQuery;
+    }
+
     //TODO MOVER LOS RESTTEMPLATE A CLIENT
     private String getOwnerFullName(Integer ownerId) {
         //buscar en la api de propietarios el nombre del propietario por cada expensa que venga
-        String ownerFullName="";
+        /*String ownerFullName="";
         String url="https://my-json-server.typicode.com/405786MoroBenjamin/users-responses/owners?id=";
         String response= restTemplate.getForObject(url+ownerId, String.class);
 
@@ -389,7 +430,8 @@ public class ExpenseService implements IExpenseService {
             e.printStackTrace();
             throw new CustomException("The owner does not exist", HttpStatus.NOT_FOUND);
         }
-        return ownerFullName;
+        return ownerFullName;*/
+        return "juan";
     }
     public String getProvider(int providerId) {
         //buscar en la api de proveedores el nombre del proveedor por cada expensa que venga
@@ -491,7 +533,7 @@ public class ExpenseService implements IExpenseService {
             newExpenseEntity.setExpenseType(ExpenseType.NOTE_OF_CREDIT);
             newExpenseEntity.setEnabled(Boolean.TRUE);
             newExpenseEntity.setExpenseDate(LocalDate.now());
-            newExpenseEntity.setDescription("Note of credit"); // description??
+            newExpenseEntity.setDescription("Note of credit of "+originalExpenseEntity.getDescription()); // description??
             newExpenseEntity.setDistributions(new ArrayList<>());
             newExpenseEntity.setAmount(originalExpenseEntity.getAmount().negate());
             newExpenseEntity.setFileId(originalExpenseEntity.getFileId());

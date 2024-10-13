@@ -1,5 +1,6 @@
 package ar.edu.utn.frc.tup.lc.iv.dtos.common;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,6 +22,7 @@ public class DtoExpenseQuery {
     private String provider;
     private BigDecimal amount;
     private String expenseType;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate expenseDate;
     private String fileId;
     private List<DtoExpenseDistributionQuery> distributionList;
