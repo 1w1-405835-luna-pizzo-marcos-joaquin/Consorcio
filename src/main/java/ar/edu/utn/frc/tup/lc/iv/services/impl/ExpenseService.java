@@ -357,10 +357,14 @@ public class ExpenseService implements IExpenseService {
 
         DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
         List<DtoExpenseQuery> dtoExpenseQueryList = new ArrayList<>();
+        DateTimeFormatter formatter1 = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDate from1 = LocalDate.parse(dateFrom, formatter1);
+        LocalDate to1 = LocalDate.parse(dateTo, formatter1);
 
+        List<ExpenseEntity> expenseEntityList = expenseRepository.findAllByDate(from1,to1);
         //TODO FILTRAR EN EL REPO POR FECHA ASI NO TRAES TODO
         //consultar todos los gastos de la base de datos
-        List<ExpenseEntity> expenseEntityList = expenseRepository.findAll();
+
 
         //agrergar a la lista de gastos solo los que esten activos
         for (ExpenseEntity expenseEntity:expenseEntityList){
