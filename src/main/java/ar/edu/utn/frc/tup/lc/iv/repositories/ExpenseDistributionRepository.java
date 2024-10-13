@@ -19,5 +19,4 @@ public interface ExpenseDistributionRepository extends JpaRepository<ExpenseDist
     List<ExpenseDistributionEntity> findAllDistinct();
     List<ExpenseDistributionEntity> findAllByOwnerId(Integer ownerId);
 
-
 }

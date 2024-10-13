@@ -48,6 +48,17 @@ public class ExpenseDistributionController {
         return ResponseEntity.ok(list);
     }
 
+//    @Operation(summary = "Get ALL Expenses by Id and Dates",
+//            description = "Get all expenses by Id and Dates")
+//    @ApiResponse(responseCode = "200", description = "get all by Id and Dates successfully",
+//            content = @Content(mediaType = "application/json",
+//                    schema = @Schema(implementation = ExpenseOwnerVisualizerDTO.class)))
+//    @GetMapping("/getAllByOwnerIdAndDates")
+//    public ResponseEntity<List<ExpenseOwnerVisualizerDTO>> getAllExpensesByIdAndDates(Integer id,LocalDate startDate,LocalDate endDate){
+//        List<ExpenseOwnerVisualizerDTO> list = expenseDistributionService.findByOwnerIdAndDateRange(id,startDate,endDate);
+//        return ResponseEntity.ok(list);
+//    }
+
 
     @Operation(summary = "Get expenses with filters",
             description = "Bring expense with optional  filters")
