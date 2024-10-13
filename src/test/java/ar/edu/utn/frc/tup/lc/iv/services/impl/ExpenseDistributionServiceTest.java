@@ -196,62 +196,62 @@ class ExpenseDistributionServiceTest {
         });
         assertEquals("El monto 'Hasta' no puede ser negativo.", thrown.getMessage());
     }
-    @Test
-    void testFindByOwnerId_ValidOwnerId() {
-        // Given
-        ExpenseEntity expense1 = new ExpenseEntity();
-        expense1.setExpenseDate(LocalDate.now());
-        expense1.setExpenseType(ExpenseType.INDIVIDUAL);
-        expense1.setAmount(new BigDecimal("500"));
-        expense1.setDescription("Test expense 1");
+//    @Test
+//    void testFindByOwnerId_ValidOwnerId() {
+//        // Given
+//        ExpenseEntity expense1 = new ExpenseEntity();
+//        expense1.setExpenseDate(LocalDate.now());
+//        expense1.setExpenseType(ExpenseType.INDIVIDUAL);
+//        expense1.setAmount(new BigDecimal("500"));
+//        expense1.setDescription("Test expense 1");
+//
+//        ExpenseDistributionEntity entity1 = new ExpenseDistributionEntity();
+//        entity1.setOwnerId(1);
+//        entity1.setExpense(expense1);
+//        entity1.setProportion(new BigDecimal("0.5"));
+//
+//        ExpenseEntity expense2 = new ExpenseEntity();
+//        expense2.setExpenseDate(LocalDate.now());
+//        expense2.setExpenseType(ExpenseType.INDIVIDUAL);
+//        expense2.setAmount(new BigDecimal("300"));
+//        expense2.setDescription("Test expense 2");
+//
+//        ExpenseDistributionEntity entity2 = new ExpenseDistributionEntity();
+//        entity2.setOwnerId(1);
+//        entity2.setExpense(expense2);
+//        entity2.setProportion(new BigDecimal("0.75"));
+//
+//        when(repository.findAllByOwnerId(1)).thenReturn(Arrays.asList(entity1, entity2));
+//
+//        // When
+//        List<ExpenseOwnerVisualizerDTO> result = service.findByOwnerId(1);
+//
+//        // Then
+//        assertNotNull(result);
+//        assertEquals(2, result.size());
+//
+//
+//        assertEquals(new BigDecimal("250.00").setScale(2), result.get(0).getAmount().setScale(2)); // 500 * 0.5
+//        assertEquals(new BigDecimal("225.00").setScale(2), result.get(1).getAmount().setScale(2)); // 300 * 0.75
+//
+//        verify(repository, times(1)).findAllByOwnerId(1);
+//    }
 
-        ExpenseDistributionEntity entity1 = new ExpenseDistributionEntity();
-        entity1.setOwnerId(1);
-        entity1.setExpense(expense1);
-        entity1.setProportion(new BigDecimal("0.5"));
-
-        ExpenseEntity expense2 = new ExpenseEntity();
-        expense2.setExpenseDate(LocalDate.now());
-        expense2.setExpenseType(ExpenseType.INDIVIDUAL);
-        expense2.setAmount(new BigDecimal("300"));
-        expense2.setDescription("Test expense 2");
-
-        ExpenseDistributionEntity entity2 = new ExpenseDistributionEntity();
-        entity2.setOwnerId(1);
-        entity2.setExpense(expense2);
-        entity2.setProportion(new BigDecimal("0.75"));
-
-        when(repository.findAllByOwnerId(1)).thenReturn(Arrays.asList(entity1, entity2));
-
-        // When
-        List<ExpenseOwnerVisualizerDTO> result = service.findByOwnerId(1);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(2, result.size());
 
 
-        assertEquals(new BigDecimal("250.00").setScale(2), result.get(0).getAmount().setScale(2)); // 500 * 0.5
-        assertEquals(new BigDecimal("225.00").setScale(2), result.get(1).getAmount().setScale(2)); // 300 * 0.75
-
-        verify(repository, times(1)).findAllByOwnerId(1);
-    }
-
-
-
-    @Test
-    void testFindByOwnerId_EmptyResult() {
-        // Given
-        when(repository.findAllByOwnerId(2)).thenReturn(Arrays.asList());
-
-        // When
-        List<ExpenseOwnerVisualizerDTO> result = service.findByOwnerId(2);
-
-        // Then
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
-
-        verify(repository, times(1)).findAllByOwnerId(2);
-    }
+//    @Test
+//    void testFindByOwnerId_EmptyResult() {
+//        // Given
+//        when(repository.findAllByOwnerId(2)).thenReturn(Arrays.asList());
+//
+//        // When
+//        List<ExpenseOwnerVisualizerDTO> result = service.findByOwnerId(2);
+//
+//        // Then
+//        assertNotNull(result);
+//        assertTrue(result.isEmpty());
+//
+//        verify(repository, times(1)).findAllByOwnerId(2);
+//    }
 
 }

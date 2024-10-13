@@ -4,16 +4,20 @@ import ar.edu.utn.frc.tup.lc.iv.dtos.common.ExpenseCategoryDTO;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.ExpenseOwnerVisualizerDTO;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseCategoryEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseDistributionEntity;
+import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseEntity;
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
 import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseDistributionRepository;
+import ar.edu.utn.frc.tup.lc.iv.repositories.ExpenseRepository;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseDistributionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -26,6 +30,12 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
 
     @Autowired
     private ExpenseDistributionRepository repository;
+    private final ExpenseRepository expenseRepository;
+
+    @Autowired
+    public ExpenseDistributionService(ExpenseRepository expenseRepository) {
+        this.expenseRepository = expenseRepository;
+    }
 
     /**
      * Retrieves a list of all distinct expense distributions and maps them to
@@ -50,19 +60,52 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
      * @param ownerId the ID of the owner.
      * @return a list of ExpenseOwnerVisualizerDTO for the specified owner.
      */
-    public List<ExpenseOwnerVisualizerDTO> findByOwnerId(Integer ownerId) {
-        List<ExpenseDistributionEntity> entities = repository.findAllByOwnerId(ownerId);
-        List<ExpenseOwnerVisualizerDTO> expenseOwnerVisualizerDTOList = entities.stream()
-                .map(this::entityDistributiontoDto)
-                .collect(Collectors.toList());
-        for (ExpenseOwnerVisualizerDTO expenseOwner : expenseOwnerVisualizerDTOList) {
-            BigDecimal amount = expenseOwner.getAmount();
-            BigDecimal proportion = expenseOwner.getProportion();
-            BigDecimal updatedAmount = amount.multiply(proportion);
-            expenseOwner.setAmount(updatedAmount);
+    public List<ExpenseOwnerVisualizerDTO> findByOwnerId(Integer ownerId, LocalDate startDate, LocalDate endDate) {
+        List<ExpenseEntity> expenses = expenseRepository.findAllByDate(startDate, endDate);
+        List<ExpenseOwnerVisualizerDTO> expenseOwnerVisualizerDTOList = new ArrayList<>();
+        for (ExpenseEntity expense : expenses) {
+            if(expense.getDistributions().isEmpty())
+                expenseOwnerVisualizerDTOList.add(expenseOwnerVisualizerDTOBuilder(expense,ownerId,BigDecimal.valueOf(1)));
+            else {
+                Optional<ExpenseDistributionEntity> expenseOwner =  expense.getDistributions().stream().filter(m->m.getOwnerId().equals(ownerId) && m.getEnabled()).findFirst();
+                if(expenseOwner.isPresent())
+                    expenseOwnerVisualizerDTOList.add(expenseOwnerVisualizerDTOBuilder(expense,ownerId,expenseOwner.get().getProportion()));
+            }
         }
+        //List<ExpenseDistributionEntity> entities = repository.findAllByOwnerId(ownerId);
+//        List<ExpenseOwnerVisualizerDTO> expenseOwnerVisualizerDTOList = entities.stream()
+//                .map(this::entityDistributiontoDto)
+//                .collect(Collectors.toList());
+//        for (ExpenseOwnerVisualizerDTO expenseOwner : expenseOwnerVisualizerDTOList) {
+//            BigDecimal amount = expenseOwner.getAmount();
+//            BigDecimal proportion = expenseOwner.getProportion();
+//            BigDecimal updatedAmount = amount.multiply(proportion);
+//            expenseOwner.setAmount(updatedAmount);
+//        }
         return expenseOwnerVisualizerDTOList;
     }
+
+    private ExpenseOwnerVisualizerDTO expenseOwnerVisualizerDTOBuilder(ExpenseEntity expense,Integer ownerId,BigDecimal proportion) {
+        return ExpenseOwnerVisualizerDTO.builder()
+                .id(ownerId)
+                .expenseId(expense.getId())
+                .description(expense.getDescription())
+                .providerId(expense.getProviderId())
+                .expenseDate(expense.getExpenseDate())
+                .fileId(expense.getFileId())
+                .invoiceNumber(expense.getInvoiceNumber())
+                .expenseType(expense.getExpenseType())
+                .category(ExpenseCategoryDTO.builder()
+                        .id(expense.getCategory().getId())
+                        .description(expense.getCategory().getDescription())
+                        .build())
+                .proportion(proportion)
+                .amount(expense.getAmount().multiply(proportion).setScale(2, RoundingMode.HALF_UP))
+                .installments(expense.getInstallments())
+                .enabled(expense.getEnabled())
+                .build();
+    }
+
 //    /**
 //     * Finds all expense distributions for a specific owner and filters by date range.
 //     *

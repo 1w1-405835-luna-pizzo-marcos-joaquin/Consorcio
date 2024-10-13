@@ -43,8 +43,8 @@ public class ExpenseDistributionController {
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ExpenseOwnerVisualizerDTO.class)))
     @GetMapping("/getAllByOwnerId")
-    public ResponseEntity<List<ExpenseOwnerVisualizerDTO>> getAllExpensesById(Integer id){
-        List<ExpenseOwnerVisualizerDTO> list = expenseDistributionService.findByOwnerId(id);
+    public ResponseEntity<List<ExpenseOwnerVisualizerDTO>> getAllExpensesById(Integer id,LocalDate startDate,LocalDate endDate){
+        List<ExpenseOwnerVisualizerDTO> list = expenseDistributionService.findByOwnerId(id,startDate,endDate);
         return ResponseEntity.ok(list);
     }
 
