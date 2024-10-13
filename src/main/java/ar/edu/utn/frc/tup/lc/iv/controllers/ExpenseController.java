@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -68,7 +69,7 @@ public class ExpenseController {
     }
 
 
-    //TODO REQUIRED FROM AND TO
+    //TODO REQUIRED FROM AND TO ok
     //TODO AL DTORESPONSE DEBERIA TENER EL FILEID Y EL INSTALLMENT LIST
     //TODO LA FECHA FORMATO YYYY-MM-DD
     @GetMapping("/getByFilters")
@@ -79,8 +80,8 @@ public class ExpenseController {
     public ResponseEntity<List <DtoExpenseQuery>> getExpenses(@RequestParam (required = false)String expenseType,
                                                               @RequestParam (required = false)String category,
                                                               @RequestParam (required = false)String provider,
-                                                              @RequestParam (required = false)String dateFrom,
-                                                              @RequestParam (required = false)String dateTo) {
+                                                              @RequestParam (required = true) String dateFrom,
+                                                              @RequestParam (required = true)String dateTo) {
         return ResponseEntity.ok(expenseService.getExpenses(expenseType, category, provider, dateFrom, dateTo)) ;
     }
 

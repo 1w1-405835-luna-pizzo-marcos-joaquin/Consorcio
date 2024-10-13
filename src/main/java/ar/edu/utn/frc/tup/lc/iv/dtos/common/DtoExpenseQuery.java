@@ -6,8 +6,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -19,8 +21,10 @@ public class DtoExpenseQuery {
     private String provider;
     private BigDecimal amount;
     private String expenseType;
-    private String createdDatetime;
+    private LocalDate expenseDate;
+    private String fileId;
     private List<DtoExpenseDistributionQuery> distributionList;
+    private List<DtoExpenseInstallment> installmentList;
 
 
 }

@@ -284,12 +284,11 @@ public class ExpenseService implements IExpenseService {
             dtoExpenseQuery.setProvider("");
         }
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-        String formattedDate = expenseEntity.getCreatedDatetime().format(formatter);
-        dtoExpenseQuery.setCreatedDatetime(formattedDate);
-
+        dtoExpenseQuery.setExpenseDate(expenseEntity.getExpenseDate());
+        dtoExpenseQuery.setFileId(expenseEntity.getFileId() != null ? expenseEntity.getFileId().toString() : null);
         dtoExpenseQuery.setCategory(expenseEntity.getCategory().getDescription());
         dtoExpenseQuery.setDistributionList(new ArrayList<>());
+        dtoExpenseQuery.setInstallmentList(new ArrayList<>());
 
         for (ExpenseDistributionEntity distributionEntity : expenseEntity.getDistributions()) {
             //get owner name and amount
@@ -303,12 +302,22 @@ public class ExpenseService implements IExpenseService {
             //add dto to list
            dtoExpenseQuery.getDistributionList().add(dtoExpenseDistributionQuery);
         }
+        for (ExpenseInstallmentEntity installmentEntity : expenseEntity.getInstallmentsList()) {
+            DtoExpenseInstallment dtoExpenseInstallment = new DtoExpenseInstallment();
+            dtoExpenseInstallment.setInstallmentNumber(installmentEntity.getInstallmentNumber());
+            dtoExpenseInstallment.setPaymentDate(installmentEntity.getPaymentDate());
+            dtoExpenseQuery.getInstallmentList().add(dtoExpenseInstallment);
+        }
 
         return dtoExpenseQuery;
     }
 
 
     public List<DtoExpenseQuery> getExpenses(String expenseType,String category, String provider, String dateFrom, String dateTo) {
+
+        if (dateFrom == null || dateTo == null) {
+            throw new CustomException("The date range is required", HttpStatus.BAD_REQUEST);
+        }//TODO validar que la fecha desde no sea mayor a hasta
 
         DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
         List<DtoExpenseQuery> dtoExpenseQueryList = new ArrayList<>();
@@ -333,10 +342,10 @@ public class ExpenseService implements IExpenseService {
                 continue;
             }
             if (dateFrom != null ){
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 try {
                     LocalDate from = LocalDate.parse(dateFrom, formatter);
-                    LocalDate created = LocalDate.parse(dtoExpenseQuery.getCreatedDatetime(), formatter);
+                    LocalDate created = dtoExpenseQuery.getExpenseDate();
                     if (created.isBefore(from)) {
                         continue;
                     }
@@ -346,10 +355,10 @@ public class ExpenseService implements IExpenseService {
                 }
             }
             if (dateTo != null ){
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 try {
                     LocalDate to = LocalDate.parse(dateTo, formatter);
-                    LocalDate created = LocalDate.parse(dtoExpenseQuery.getCreatedDatetime(), formatter);
+                    LocalDate created = dtoExpenseQuery.getExpenseDate();
                     if (created.isAfter(to)) {
                         continue;
                     }
