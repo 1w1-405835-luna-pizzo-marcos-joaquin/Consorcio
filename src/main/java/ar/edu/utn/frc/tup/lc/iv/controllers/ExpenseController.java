@@ -57,31 +57,47 @@ public class ExpenseController {
         return expenseService.createCreditNoteForExpense(id);
     }
 
-    @GetMapping("/getById")
-    @Operation(summary = "Get expense by id")
-    @ApiResponse(responseCode = "200", description = "Expenses get successfully",
-            content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = DtoExpenseQuery.class)))
-    public ResponseEntity<DtoExpenseQuery> getExpenseById(@RequestParam (required = true)int expenseId) {
-        return ResponseEntity.ok(expenseService.getExpenseById(expenseId)) ;
-    }
+    /**
+ * Retrieves an expense by its ID.
+ *
+ * @param expenseId the ID of the expense to retrieve (required)
+ * @return a ResponseEntity containing the DtoExpenseQuery object for the specified expense
+ */
+@GetMapping("/getById")
+@Operation(summary = "Get expense by id")
+@ApiResponse(responseCode = "200", description = "Expenses retrieved successfully",
+        content = @Content(mediaType = "application/json",
+                schema = @Schema(implementation = DtoExpenseQuery.class)))
+public ResponseEntity<DtoExpenseQuery> getExpenseById(@RequestParam(required = true) int expenseId) {
+    return ResponseEntity.ok(expenseService.getExpenseById(expenseId));
+}
 
 
     //TODO REQUIRED FROM AND TO ok
-    //TODO AL DTORESPONSE DEBERIA TENER EL FILEID Y EL INSTALLMENT LIST
-    //TODO LA FECHA FORMATO YYYY-MM-DD
-    @GetMapping("/getByFilters")
-    @Operation(summary = "Get expenses by filters")
-    @ApiResponse(responseCode = "200", description = "Expenses get successfully",
-            content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = DtoExpenseQuery.class)))
-    public ResponseEntity<List <DtoExpenseQuery>> getExpenses(@RequestParam (required = false)String expenseType,
-                                                              @RequestParam (required = false)String category,
-                                                              @RequestParam (required = false)String provider,
-                                                              @RequestParam (required = true) String dateFrom,
-                                                              @RequestParam (required = true)String dateTo) {
-        return ResponseEntity.ok(expenseService.getExpenses(expenseType, category, provider, dateFrom, dateTo)) ;
-    }
-
+    //TODO AL DTORESPONSE DEBERIA TENER EL FILEID Y EL INSTALLMENT LIST ok
+    //TODO LA FECHA FORMATO YYYY-MM-DD ok
+    /**
+ * Retrieves a list of expenses filtered by the given parameters.
+ *
+ * @param expenseType the type of expense to filter by (optional)
+ * @param category the category of the expense to filter by (optional)
+ * @param provider the provider of the expense to filter by (optional)
+ * @param dateFrom the start date for filtering expenses (required, format: YYYY-MM-DD)
+ * @param dateTo the end date for filtering expenses (required, format: YYYY-MM-DD)
+ * @return a ResponseEntity containing a list of DtoExpenseQuery objects that match the filters
+ */
+@GetMapping("/getByFilters")
+@Operation(summary = "Get expenses by filters")
+@ApiResponse(responseCode = "200", description = "Expenses retrieved successfully",
+        content = @Content(mediaType = "application/json",
+                schema = @Schema(implementation = DtoExpenseQuery.class)))
+public ResponseEntity<List<DtoExpenseQuery>> getExpenses(
+        @RequestParam(required = false) String expenseType,
+        @RequestParam(required = false) String category,
+        @RequestParam(required = false) String provider,
+        @RequestParam(required = true) String dateFrom,
+        @RequestParam(required = true) String dateTo) {
+    return ResponseEntity.ok(expenseService.getExpenses(expenseType, category, provider, dateFrom, dateTo));
+}
 
 }

@@ -17,11 +17,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -128,5 +132,96 @@ class ExpenseControllerTest {
         responseExpense.setDtoInstallmentList(Arrays.asList(new DtoInstallment()));
         return responseExpense;
     }
+@Test
+void testGetExpenseById() throws Exception {
+    int expenseId = 1;
+    DtoExpenseQuery expenseQuery = new DtoExpenseQuery();
 
+    List<DtoExpenseDistributionQuery> expenseDistribution = new ArrayList<>();
+    DtoExpenseDistributionQuery distribution = new DtoExpenseDistributionQuery();
+    distribution.setAmount(new BigDecimal("100.00"));
+    distribution.setOwnerId(1);
+    distribution.setOwnerFullName("Owner");
+    expenseDistribution.add(distribution);
+
+    expenseQuery.setCategory("Category");
+    expenseQuery.setId(1);
+    expenseQuery.setAmount(new BigDecimal("100.00"));
+    expenseQuery.setExpenseType(ExpenseType.COMUN.toString());
+    expenseQuery.setProvider("Provider");
+    expenseQuery.setExpenseDate(LocalDate.parse("2024-01-01"));
+    expenseQuery.setDistributionList(expenseDistribution);
+
+    // Ensure the mock is configured correctly
+    when(expenseService.getExpenseById(anyInt())).thenReturn(expenseQuery);
+
+    mockMvc.perform(get("/expenses/getById")
+                    .param("expenseId", String.valueOf(expenseId))
+                    .contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.category").value("Category"))
+            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.amount").value("100.0"))
+            .andExpect(jsonPath("$.expenseType").value("COMUN"))
+            .andExpect(jsonPath("$.provider").value("Provider"))
+            .andExpect(jsonPath("$.expenseDate").value("2024-01-01"))
+            .andExpect(jsonPath("$.distributionList[0].amount").value("100.0"))
+            .andExpect(jsonPath("$.distributionList[0].ownerId").value(1))
+            .andExpect(jsonPath("$.distributionList[0].ownerFullName").value("Owner"));
+
+    verify(expenseService, times(1)).getExpenseById(expenseId);
+}
+
+@Test
+void testGetExpenses() throws Exception {
+    String expenseType = "COMUN";
+    String category = "Category";
+    String provider = "Provider";
+    String dateFrom = "2024-01-01";
+    String dateTo = "2024-12-31";
+
+    List<DtoExpenseQuery> expenseQueryList = new ArrayList<>();
+    DtoExpenseQuery expenseQuery = new DtoExpenseQuery();
+
+    List<DtoExpenseDistributionQuery> expenseDistribution = new ArrayList<>();
+    DtoExpenseDistributionQuery distribution = new DtoExpenseDistributionQuery();
+    distribution.setAmount(new BigDecimal("100.00"));
+    distribution.setOwnerId(1);
+    distribution.setOwnerFullName("Owner");
+    expenseDistribution.add(distribution);
+
+    expenseQuery.setCategory("Category");
+    expenseQuery.setId(1);
+    expenseQuery.setAmount(new BigDecimal("100.00"));
+    expenseQuery.setExpenseType(ExpenseType.COMUN.toString());
+    expenseQuery.setProvider("Provider");
+    expenseQuery.setExpenseDate(LocalDate.parse("2024-01-01"));
+    expenseQuery.setDistributionList(expenseDistribution);
+
+    expenseQueryList.add(expenseQuery);
+
+    // Ensure the mock is configured correctly
+    when(expenseService.getExpenses(expenseType, category, provider, dateFrom, dateTo))
+            .thenReturn(expenseQueryList);
+
+    mockMvc.perform(get("/expenses/getByFilters")
+                    .param("expenseType", expenseType)
+                    .param("category", category)
+                    .param("provider", provider)
+                    .param("dateFrom", dateFrom)
+                    .param("dateTo", dateTo)
+                    .contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].category").value("Category"))
+            .andExpect(jsonPath("$[0].id").value(1))
+            .andExpect(jsonPath("$[0].amount").value("100.0"))
+            .andExpect(jsonPath("$[0].expenseType").value("COMUN"))
+            .andExpect(jsonPath("$[0].provider").value("Provider"))
+            .andExpect(jsonPath("$[0].expenseDate").value("2024-01-01"))
+            .andExpect(jsonPath("$[0].distributionList[0].amount").value("100.0"))
+            .andExpect(jsonPath("$[0].distributionList[0].ownerId").value(1))
+            .andExpect(jsonPath("$[0].distributionList[0].ownerFullName").value("Owner"));
+
+    verify(expenseService, times(1)).getExpenses(expenseType, category, provider, dateFrom, dateTo);
+}
 }
