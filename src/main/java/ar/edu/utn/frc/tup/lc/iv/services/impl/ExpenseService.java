@@ -105,7 +105,7 @@ public class ExpenseService implements IExpenseService {
         ExpenseEntity expenseEntity = modelMapper.map(expenseModel, ExpenseEntity.class);
         expenseEntity.setDistributions(new ArrayList<>());
         expenseEntity.setInstallmentsList(new ArrayList<>());
-
+        expenseEntity.setNoteCredit(false);
         if (expenseEntity.getAmount() == null || expenseEntity.getCategory() == null) {
             throw new CustomException("Missing required fields in ExpenseEntity", HttpStatus.BAD_REQUEST);
         }
