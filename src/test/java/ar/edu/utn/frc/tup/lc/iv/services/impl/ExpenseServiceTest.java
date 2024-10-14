@@ -1,13 +1,17 @@
 package ar.edu.utn.frc.tup.lc.iv.services.impl;
 
+import ar.edu.utn.frc.tup.lc.iv.client.OwnerRestClient;
+import ar.edu.utn.frc.tup.lc.iv.client.ProviderRestClient;
 import ar.edu.utn.frc.tup.lc.iv.comunication.FileServerRestClient;
 import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoDistribution;
+import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoExpenseQuery;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoRequestExpense;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoResponseExpense;
 import ar.edu.utn.frc.tup.lc.iv.entities.*;
 import ar.edu.utn.frc.tup.lc.iv.enums.ExpenseType;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseCategoryModel;
+import ar.edu.utn.frc.tup.lc.iv.models.ExpenseDistributionModel;
 import ar.edu.utn.frc.tup.lc.iv.models.ExpenseModel;
 import ar.edu.utn.frc.tup.lc.iv.repositories.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,11 +24,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -48,6 +51,11 @@ class ExpenseServiceTest {
     private BillExpenseInstallmentsRepository billExpenseInstallmentsRepository;
     @Mock
     private FileServerRestClient fileServerRestClient; //mock this when file server works
+
+    @Mock
+    private ProviderRestClient providerRestClient;
+    @Mock
+    private OwnerRestClient ownerRestClient;
 
     @BeforeEach
     void setUp() {
@@ -264,5 +272,264 @@ class ExpenseServiceTest {
 
     }
 
+    @Test
+void setExpenseDistributionModels_ValidDistributions_ReturnsExpenseDistributionModels() throws Exception {
+    DtoRequestExpense request = new DtoRequestExpense();
+    List<DtoDistribution> distributions = new ArrayList<>();
+    DtoDistribution distribution1 = new DtoDistribution();
+    distribution1.setOwnerId(1);
+    distribution1.setProportion(new BigDecimal("5.00"));
+    distributions.add(distribution1);
+
+    DtoDistribution distribution2 = new DtoDistribution();
+    distribution2.setOwnerId(2);
+    distribution2.setProportion(new BigDecimal("5.00"));
+    distributions.add(distribution2);
+
+    request.setDistributions(distributions);
+
+    // Use reflection to access the private method
+    Method method = ExpenseService.class.getDeclaredMethod("setExpenseDistributionModels", DtoRequestExpense.class);
+    method.setAccessible(true);
+    List<ExpenseDistributionModel> result = (List<ExpenseDistributionModel>) method.invoke(expenseService, request);
+
+    assertNotNull(result);
+    assertEquals(2, result.size());
+    assertEquals(1, result.get(0).getOwnerId());
+    assertEquals(new BigDecimal("5.00"), result.get(0).getProportion());
+    assertEquals(2, result.get(1).getOwnerId());
+    assertEquals(new BigDecimal("5.00"), result.get(1).getProportion());
+}
+
+    @Test
+void setExpenseDistributionModels_InvalidProportion_ThrowsIllegalArgumentException() throws Exception {
+    DtoRequestExpense request = new DtoRequestExpense();
+    List<DtoDistribution> distributions = new ArrayList<>();
+    DtoDistribution distribution1 = new DtoDistribution();
+    distribution1.setOwnerId(1);
+    distribution1.setProportion(new BigDecimal("6.00"));
+    distributions.add(distribution1);
+
+    DtoDistribution distribution2 = new DtoDistribution();
+    distribution2.setOwnerId(2);
+    distribution2.setProportion(new BigDecimal("5.00"));
+    distributions.add(distribution2);
+
+    request.setDistributions(distributions);
+
+    Method method = ExpenseService.class.getDeclaredMethod("setExpenseDistributionModels", DtoRequestExpense.class);
+    method.setAccessible(true);
+
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+        method.invoke(expenseService, request);
+    });
+
+    assertEquals("the sum of distributions can't be less or more than 10.00", exception.getMessage());
+}
+
+
+   /////////////////////EXPENSES BY ID///////////////////////////////
+    @Test
+void getExpenseById_ValidId_ReturnsDtoExpenseQuery() {
+    Integer expenseId = 1;
+    ExpenseEntity expenseEntity = new ExpenseEntity();
+    expenseEntity.setEnabled(true);
+    expenseEntity.setId(expenseId);
+    expenseEntity.setAmount(new BigDecimal("100.00"));
+    expenseEntity.setCategory(new ExpenseCategoryEntity());
+    expenseEntity.setExpenseDate(LocalDate.now());
+    expenseEntity.setExpenseType(ExpenseType.COMUN);
+    expenseEntity.setProviderId(1);
+    expenseEntity.setDistributions(new ArrayList<>());
+    expenseEntity.setInstallmentsList(new ArrayList<>());
+
+    when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expenseEntity));
+    when(providerRestClient.getProvider(1)).thenReturn("Provider Name");
+    when(modelMapper.map(expenseEntity, DtoExpenseQuery.class)).thenReturn(new DtoExpenseQuery());
+
+    DtoExpenseQuery result = expenseService.getExpenseById(expenseId);
+
+    assertNotNull(result);
+    verify(expenseRepository, times(1)).findById(expenseId);
+}
+@Test
+void getExpenseById_ExpenseNotEnabled_ThrowsCustomException() {
+    Integer expenseId = 1;
+    ExpenseEntity expenseEntity = new ExpenseEntity();
+    expenseEntity.setEnabled(false);
+
+    when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expenseEntity));
+
+    CustomException exception = assertThrows(CustomException.class, () -> {
+        expenseService.getExpenseById(expenseId);
+    });
+
+    assertEquals("The expense does not exist", exception.getMessage());
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+}
+@Test
+void getExpenseById_ExpenseDoesNotExist_ThrowsCustomException() {
+    Integer expenseId = 1;
+
+    when(expenseRepository.findById(expenseId)).thenReturn(Optional.empty());
+
+    CustomException exception = assertThrows(CustomException.class, () -> {
+        expenseService.getExpenseById(expenseId);
+    });
+
+    assertEquals("The expense does not exist", exception.getMessage());
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+}
+
+
+////////////////////EXPENSES BY DATE///////////////////////////////
+    @Test
+    void getExpenses_ValidDateRange_ReturnsDtoExpenseQueryList() {
+        String dateFrom = "2023-01-01";
+        String dateTo = "2023-12-31";
+        ExpenseEntity expenseEntity = new ExpenseEntity();
+        expenseEntity.setEnabled(true);
+        expenseEntity.setCategory(new ExpenseCategoryEntity());
+        expenseEntity.setDistributions(new ArrayList<>());
+        expenseEntity.setInstallmentsList(new ArrayList<>());
+        expenseEntity.setExpenseDate(LocalDate.parse("2023-06-01"));
+        List<ExpenseEntity> expenseEntityList = Collections.singletonList(expenseEntity);
+        DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
+
+        when(expenseRepository.findAllByDate(any(LocalDate.class), any(LocalDate.class))).thenReturn(expenseEntityList);
+        when(modelMapper.map(expenseEntity, DtoExpenseQuery.class)).thenReturn(dtoExpenseQuery);
+
+        List<DtoExpenseQuery> result = expenseService.getExpenses(null, null, null, dateFrom, dateTo);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(expenseRepository, times(1)).findAllByDate(any(LocalDate.class), any(LocalDate.class));
+    }
+
+    @Test
+    void getExpenses_InvalidDateRange_ThrowsCustomException() {
+        String dateFrom = "2023-12-31";
+        String dateTo = "2023-01-01";
+
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            expenseService.getExpenses(null, null, null, dateFrom, dateTo);
+        });
+
+        assertEquals("The date range is not correct", exception.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    }
+
+    @Test
+    void getExpenses_NullDateRange_ThrowsCustomException() {
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            expenseService.getExpenses(null, null, null, null, null);
+        });
+
+        assertEquals("The date range is required", exception.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    }
+
+    @Test
+    void getExpenses_ExpenseNotEnabled_IsNotIncludedInResult() {
+        String dateFrom = "2023-01-01";
+        String dateTo = "2023-12-31";
+        ExpenseEntity expenseEntity = new ExpenseEntity();
+        expenseEntity.setEnabled(false);
+        List<ExpenseEntity> expenseEntityList = Collections.singletonList(expenseEntity);
+
+        when(expenseRepository.findAllByDate(any(LocalDate.class), any(LocalDate.class))).thenReturn(expenseEntityList);
+
+        List<DtoExpenseQuery> result = expenseService.getExpenses(null, null, null, dateFrom, dateTo);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(expenseRepository, times(1)).findAllByDate(any(LocalDate.class), any(LocalDate.class));
+    }
+
+    @Test
+    void getExpenses_InvalidDateFormat_ThrowsCustomException() {
+        String dateFrom = "invalid-date";
+        String dateTo = "2023-12-31";
+
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            expenseService.getExpenses(null, null, null, dateFrom, dateTo);
+        });
+
+        assertEquals("The date format is not correct", exception.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    }
+
+    //////////////////// MAP ENTITY TO DTO EXPENSE /////////////////////
+
+
+    @Test
+    void mapEntityToDtoExpense_ValidExpenseEntity_ReturnsDtoExpenseQuery() throws Exception {
+        ExpenseEntity expenseEntity = new ExpenseEntity();
+        expenseEntity.setProviderId(1);
+        expenseEntity.setExpenseDate(LocalDate.now());
+        expenseEntity.setFileId(UUID.randomUUID());
+        ExpenseCategoryEntity category = new ExpenseCategoryEntity();
+        category.setDescription("Category Description");
+        expenseEntity.setCategory(category);
+        expenseEntity.setDistributions(new ArrayList<>());
+        expenseEntity.setInstallmentsList(new ArrayList<>());
+
+        DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
+        when(modelMapper.map(expenseEntity, DtoExpenseQuery.class)).thenReturn(dtoExpenseQuery);
+        when(providerRestClient.getProvider(1)).thenReturn("Provider Name");
+
+        // Use reflection to access the private method
+        Method method = ExpenseService.class.getDeclaredMethod("mapEntityToDtoExpense", ExpenseEntity.class);
+        method.setAccessible(true);
+        DtoExpenseQuery result = (DtoExpenseQuery) method.invoke(expenseService, expenseEntity);
+
+        assertNotNull(result);
+        verify(modelMapper, times(1)).map(expenseEntity, DtoExpenseQuery.class);
+        verify(providerRestClient, times(1)).getProvider(1);
+    }
+
+  @Test
+void mapEntityToDtoExpense_ExpenseEntityWithDistributionsAndInstallments_ReturnsDtoExpenseQuery() throws Exception {
+    ExpenseEntity expenseEntity = new ExpenseEntity();
+    expenseEntity.setProviderId(1);
+    expenseEntity.setExpenseDate(LocalDate.now());
+    expenseEntity.setFileId(UUID.fromString("00000000-0000-0000-0000-000000000123"));
+    expenseEntity.setAmount(new BigDecimal("100.00"));
+    ExpenseCategoryEntity category = new ExpenseCategoryEntity();
+    category.setDescription("Category Description");
+    expenseEntity.setCategory(category);
+
+    ExpenseDistributionEntity distributionEntity = new ExpenseDistributionEntity();
+    distributionEntity.setOwnerId(1);
+    distributionEntity.setProportion(new BigDecimal("0.5"));
+    expenseEntity.setDistributions(List.of(distributionEntity));
+
+    ExpenseInstallmentEntity installmentEntity = new ExpenseInstallmentEntity();
+    installmentEntity.setInstallmentNumber(1);
+    installmentEntity.setPaymentDate(LocalDate.now());
+    expenseEntity.setInstallmentsList(List.of(installmentEntity));
+
+    DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
+    when(modelMapper.map(expenseEntity, DtoExpenseQuery.class)).thenReturn(dtoExpenseQuery);
+    when(providerRestClient.getProvider(1)).thenReturn("Provider Name");
+    when(ownerRestClient.getOwnerFullName(1)).thenReturn("Owner Name");
+
+    // Use reflection to access the private method
+    Method method = ExpenseService.class.getDeclaredMethod("mapEntityToDtoExpense", ExpenseEntity.class);
+    method.setAccessible(true);
+    DtoExpenseQuery result = (DtoExpenseQuery) method.invoke(expenseService, expenseEntity);
+
+    assertNotNull(result);
+    assertEquals("Provider Name", result.getProvider());
+    assertEquals(expenseEntity.getExpenseDate(), result.getExpenseDate());
+    assertEquals("00000000-0000-0000-0000-000000000123", result.getFileId());
+    assertEquals("Category Description", result.getCategory());
+    assertEquals(1, result.getDistributionList().size());
+    assertEquals("Owner Name", result.getDistributionList().get(0).getOwnerFullName());
+    assertEquals(new BigDecimal("0.5").multiply(expenseEntity.getAmount()), result.getDistributionList().get(0).getAmount());
+    assertEquals(1, result.getInstallmentList().size());
+    assertEquals(1, result.getInstallmentList().get(0).getInstallmentNumber());
+    assertEquals(expenseEntity.getInstallmentsList().get(0).getPaymentDate(), result.getInstallmentList().get(0).getPaymentDate());
+}
 
 }

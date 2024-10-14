@@ -317,8 +317,15 @@ public List<DtoExpenseQuery> getExpenses(String expenseType, String category, St
     }
 
     DateTimeFormatter formatter1 = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    LocalDate from1 = LocalDate.parse(dateFrom, formatter1);
-    LocalDate to1 = LocalDate.parse(dateTo, formatter1);
+    LocalDate from1;
+    LocalDate to1;
+    try {
+        from1 = LocalDate.parse(dateFrom, formatter1);
+        to1 = LocalDate.parse(dateTo, formatter1);
+    } catch (DateTimeParseException e) {
+        throw new CustomException("The date format is not correct", HttpStatus.BAD_REQUEST);
+    }
+
     if (from1.isAfter(to1)) {
         throw new CustomException("The date range is not correct", HttpStatus.BAD_REQUEST);
     }
