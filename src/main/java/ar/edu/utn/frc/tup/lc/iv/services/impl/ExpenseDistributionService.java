@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -60,8 +62,36 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
      * @param ownerId the ID of the owner.
      * @return a list of ExpenseOwnerVisualizerDTO for the specified owner.
      */
-    public List<ExpenseOwnerVisualizerDTO> findByOwnerId(Integer ownerId, LocalDate startDate, LocalDate endDate) {
+    public List<ExpenseOwnerVisualizerDTO> findByOwnerId(Integer ownerId,String startDateString, String endDateString) {
+
+
+        if (ownerId == null || ownerId <= 0) {
+            throw new IllegalArgumentException("El ID del propietario no puede ser nulo o negativo.");
+        }
+
+        // Formateador de fechas en formato yyyy-MM-dd
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        LocalDate startDate;
+        LocalDate endDate;
+
+        // Validar y convertir la fecha de inicio
+        try {
+            startDate = LocalDate.parse(startDateString, formatter);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("La fecha de inicio debe estar en el formato yyyy-MM-dd.");
+        }
+
+        // Validar y convertir la fecha de fin
+        try {
+            endDate = LocalDate.parse(endDateString, formatter);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("La fecha de fin debe estar en el formato yyyy-MM-dd.");
+        }
         List<ExpenseEntity> expenses = expenseRepository.findAllByDate(startDate, endDate);
+        if (expenses == null || expenses.isEmpty()) {
+            throw new IllegalArgumentException("No se encontraron gastos en el rango de fechas proporcionado.");
+        }
         List<ExpenseOwnerVisualizerDTO> expenseOwnerVisualizerDTOList = new ArrayList<>();
         for (ExpenseEntity expense : expenses) {
             if(expense.getDistributions().isEmpty())
@@ -86,6 +116,16 @@ public class ExpenseDistributionService implements IExpenseDistributionService {
     }
 
     private ExpenseOwnerVisualizerDTO expenseOwnerVisualizerDTOBuilder(ExpenseEntity expense,Integer ownerId,BigDecimal proportion) {
+        if (expense == null) {
+            throw new IllegalArgumentException("El gasto no puede ser nulo.");
+        }
+        if (ownerId == null || ownerId <= 0) {
+            throw new IllegalArgumentException("El ID del propietario no puede ser nulo o negativo.");
+        }
+        if (proportion == null || proportion.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("La proporción no puede ser nula o negativa.");
+        }
+
         return ExpenseOwnerVisualizerDTO.builder()
                 .id(ownerId)
                 .expenseId(expense.getId())
