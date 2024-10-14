@@ -5,6 +5,7 @@ import ar.edu.utn.frc.tup.lc.iv.client.ProviderRestClient;
 import ar.edu.utn.frc.tup.lc.iv.comunication.FileServerRestClient;
 import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.*;
+import ar.edu.utn.frc.tup.lc.iv.dtos.owner.OwnerDto;
 import ar.edu.utn.frc.tup.lc.iv.entities.BillExpenseInstallmentsEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseDistributionEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseEntity;
@@ -350,7 +351,6 @@ public DtoExpenseQuery getExpenseById(Integer expenseId) {
 public List<DtoExpenseQuery> getExpenses(String expenseType, String category, String provider, String dateFrom, String dateTo) {
     DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
     List<DtoExpenseQuery> dtoExpenseQueryList = new ArrayList<>();
-
     if (dateFrom == null || dateTo == null) {
         throw new CustomException("The date range is required", HttpStatus.BAD_REQUEST);
     }
@@ -371,13 +371,18 @@ public List<DtoExpenseQuery> getExpenses(String expenseType, String category, St
 
     // Retrieve all expenses from the database within the date range
     List<ExpenseEntity> expenseEntityList = expenseRepository.findAllByDate(from1, to1);
+    List<OwnerDto> ownerDtos = getOwners();
+    List<ExpenseModel> expenseModelList = new ArrayList<>();
+    for (ExpenseEntity expenseEntity : expenseEntityList) {
+        expenseModelList.add(modelMapper.map(expenseEntity, ExpenseModel.class));
+    }
 
     // Add only active expenses and expenses that matches to the list
-    for (ExpenseEntity expenseEntity : expenseEntityList) {
-        if (!expenseEntity.getEnabled()) {
+    for (ExpenseModel expenseModel : expenseModelList) {
+        if (!expenseModel.getEnabled()) {
             continue;
         }
-        dtoExpenseQuery = mapEntityToDtoExpense(expenseEntity);
+        dtoExpenseQuery = mapModelToDtoExpense(expenseModel,ownerDtos);
         if (expenseType != null && !dtoExpenseQuery.getExpenseType().equalsIgnoreCase(expenseType)) {
             continue;
         }
@@ -463,6 +468,51 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
 
     return dtoExpenseQuery;
 }
+    private DtoExpenseQuery mapModelToDtoExpense(ExpenseModel expenseModel, List<OwnerDto> ownerDtos) {
+        DtoExpenseQuery dtoExpenseQuery = modelMapper.map(expenseModel, DtoExpenseQuery.class);
+
+        // Set provider information
+        if (expenseModel.getProviderId() != null) {
+            dtoExpenseQuery.setProvider(providerRestClient.getProvider(expenseModel.getProviderId()));
+        } else {
+            dtoExpenseQuery.setProvider("");
+        }
+
+        // Set basic expense information
+        dtoExpenseQuery.setExpenseDate(expenseModel.getExpenseDate());
+        dtoExpenseQuery.setFileId(expenseModel.getFileId() != null ? expenseModel.getFileId().toString() : null);
+        dtoExpenseQuery.setCategory(expenseModel.getCategory().getDescription());
+        dtoExpenseQuery.setDistributionList(new ArrayList<>());
+        dtoExpenseQuery.setInstallmentList(new ArrayList<>());
+
+        // Map distributions
+        for (ExpenseDistributionModel distributionModel : expenseModel.getDistributions()) {
+            OwnerDto  ownerDto= ownerDtos.stream().filter(m->m.getId().equals(distributionModel.getOwnerId())).findFirst().get();
+            String ownerName = ownerDto.getLastName() + " "+ownerDto.getName();
+
+            BigDecimal amount = expenseModel.getAmount().multiply(distributionModel.getProportion());
+
+            DtoExpenseDistributionQuery dtoExpenseDistributionQuery = new DtoExpenseDistributionQuery();
+            dtoExpenseDistributionQuery.setOwnerFullName(ownerName);
+            dtoExpenseDistributionQuery.setAmount(amount);
+            dtoExpenseDistributionQuery.setOwnerId(distributionModel.getOwnerId());
+
+            dtoExpenseQuery.getDistributionList().add(dtoExpenseDistributionQuery);
+        }
+
+        // Map installments
+        for (ExpenseInstallmentModel installmentModel : expenseModel.getInstallmentsList()) {
+            DtoExpenseInstallment dtoExpenseInstallment = new DtoExpenseInstallment();
+            dtoExpenseInstallment.setInstallmentNumber(installmentModel.getInstallmentNumber());
+            dtoExpenseInstallment.setPaymentDate(installmentModel.getPaymentDate());
+
+            dtoExpenseQuery.getInstallmentList().add(dtoExpenseInstallment);
+        }
+
+        return dtoExpenseQuery;
+    }
+
+
 
     /**
      * Deletes an expense logically by setting its enabled status to false.
@@ -664,5 +714,18 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
             }
         }
 
+    /**
+     * Retrieves a list of owners from the owner service using a REST client.
+     * @return List of {@link OwnerDto} with owner details.
+     */
+    private List<OwnerDto> getOwners() {
+        ResponseEntity<OwnerDto[]> response = ownerRestClient.getOwnerPlot();
+        if (response.getStatusCode() != HttpStatus.OK) {
+            throw new CustomException("Could not retrieve owners", HttpStatus.BAD_REQUEST);
+        }
+        return Arrays.asList(response.getBody());
+    }
 
     }
+
+
