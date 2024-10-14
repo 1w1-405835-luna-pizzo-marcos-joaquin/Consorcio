@@ -14,4 +14,5 @@ public interface IExpenseDistributionService {
     List<ExpenseOwnerVisualizerDTO> findAll();
     List<ExpenseOwnerVisualizerDTO> filterExpenses(Integer ownerId, LocalDate startDate, LocalDate endDate, ExpenseType expenseType,
                                                    Integer categoryId, String description, BigDecimal amountFrom, BigDecimal amountTo);
+    List<ExpenseOwnerVisualizerDTO> findByOwnerId(Integer ownerId, String startDate, String endDate);
 }

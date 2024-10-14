@@ -59,6 +59,14 @@ public class ExpenseService implements IExpenseService {
     private ProviderRestClient providerRestClient;
 
 
+    /**
+     * Creates a new expense based on the provided request and file.
+     *
+     * @param request The DTO containing expense details.
+     * @param file The file associated with the expense (can be null).
+     * @return ResponseEntity containing the created expense details.
+     * @throws CustomException if the expense is not valid or already exists.
+     */
     @Transactional
     public ResponseEntity<DtoResponseExpense> postExpense(DtoRequestExpense request, MultipartFile file) {
         Boolean expenseValid = fetchValidExpenseModel(request, file);
@@ -67,7 +75,7 @@ public class ExpenseService implements IExpenseService {
             List<ExpenseInstallmentModel> expenseInstallmentModels = setExpenseInstallmentModels(request, expenseModel);
             List<ExpenseDistributionModel> expenseDistributionModels = new ArrayList<>();
             if(ExpenseType.valueOf(request.getTypeExpense()).equals(ExpenseType.INDIVIDUAL)) {
-                expenseInstallmentModels = setExpenseInstallmentModels(request, expenseModel);
+                expenseDistributionModels = setExpenseDistributionModels(request);
             }
             expenseModel.setInstallmentsList(expenseInstallmentModels);
             expenseModel.setDistributions(expenseDistributionModels);
@@ -117,12 +125,18 @@ public class ExpenseService implements IExpenseService {
         }
 
     }
-
+    /**
+     * Creates a DTO response from an expense model.
+     *
+     * @param expenseModel The expense model to convert.
+     * @return A DtoResponseExpense object containing the expense details.
+     */
     private DtoResponseExpense setDtoResponseExpense(ExpenseModel expenseModel) {
         DtoResponseExpense dtoResponseExpense = new DtoResponseExpense();
         dtoResponseExpense.setExpenseDate(expenseModel.getExpenseDate());
         dtoResponseExpense.setExpenseType(expenseModel.getExpenseType());
         dtoResponseExpense.setDescription(expenseModel.getDescription());
+        dtoResponseExpense.setFileId(expenseModel.getFileId());
         DtoCategory dtoCategory = new DtoCategory();
         dtoCategory.setId(expenseModel.getCategory().getId());
         dtoCategory.setDescription(expenseModel.getCategory().getDescription());
@@ -149,7 +163,13 @@ public class ExpenseService implements IExpenseService {
         return dtoResponseExpense;
 
     }
-
+    /**
+     * Creates a list of expense installment models based on the request and expense model.
+     *
+     * @param request The DTO containing expense details.
+     * @param expenseModel The expense model.
+     * @return A list of ExpenseInstallmentModel objects.
+     */
     private List<ExpenseInstallmentModel> setExpenseInstallmentModels(DtoRequestExpense request, ExpenseModel expenseModel) {
         List<ExpenseInstallmentModel> expenseInstallmentModels = new ArrayList<>();
         Integer installments = 1;
@@ -175,6 +195,13 @@ public class ExpenseService implements IExpenseService {
 
     }
 
+    /**
+     * Creates a list of expense distribution models based on the request.
+     *
+     * @param request The DTO containing expense details.
+     * @return A list of ExpenseDistributionModel objects.
+     * @throws IllegalArgumentException if the sum of distributions is not valid.
+     */
     private List<ExpenseDistributionModel> setExpenseDistributionModels(DtoRequestExpense request) {
         List<ExpenseDistributionModel> expenseDistributionModels = new ArrayList<>();
         BigDecimal totalProportion = BigDecimal.ZERO;
@@ -197,7 +224,12 @@ public class ExpenseService implements IExpenseService {
 
         return expenseDistributionModels;
     }
-
+    /**
+     * Creates an expense model from the provided request.
+     *
+     * @param request The DTO containing expense details.
+     * @return An ExpenseModel object.
+     */
     private ExpenseModel setDataToExpenseModel(DtoRequestExpense request) {
         ExpenseModel expenseModel = new ExpenseModel();
         expenseModel.setDescription(request.getDescription());
@@ -217,7 +249,14 @@ public class ExpenseService implements IExpenseService {
         return expenseModel;
 
     }
-
+    /**
+     * Validates the expense request and associated file.
+     *
+     * @param request The DTO containing expense details.
+     * @param file The file associated with the expense (can be null).
+     * @return true if the expense is valid, false otherwise.
+     * @throws CustomException for various validation errors.
+     */
     private Boolean fetchValidExpenseModel(DtoRequestExpense request,MultipartFile file) {
         Optional<ExpenseEntity> expenseEntityValidateExist =  expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(request.getInvoiceNumber(), request.getProviderId());
         if (expenseEntityValidateExist.isPresent()) {
@@ -425,10 +464,15 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
     return dtoExpenseQuery;
 }
 
-
-
+    /**
+     * Deletes an expense logically by setting its enabled status to false.
+     *
+     * @param id The ID of the expense to be deleted.
+     * @return A DtoResponseDeleteExpense object containing the deletion result.
+     * @throws CustomException if the expense does not exist or has related bill installments.
+     */
         @Override
-        public void deteleExpense(Integer id) {
+        public DtoResponseDeleteExpense deteleExpense(Integer id) {
             Optional<ExpenseEntity> expenseEntityOptional = expenseRepository.findById(id);
             if (expenseEntityOptional.isEmpty()) {
                 throw new CustomException("The expense does not exist", HttpStatus.BAD_REQUEST);
@@ -439,26 +483,38 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
 
             if (billExpenseInstallmentsEntity.map(List::isEmpty).orElse(true)) {
                 performLogicalDeletion(expenseEntity);
+                DtoResponseDeleteExpense dtoResponseDeleteExpense = new DtoResponseDeleteExpense();
+                dtoResponseDeleteExpense.setExpense(expenseEntity.getDescription());
+                dtoResponseDeleteExpense.setHttpStatus(HttpStatus.OK);
+                dtoResponseDeleteExpense.setDescriptionResponse("Expense delete logic successfully");
+                return dtoResponseDeleteExpense;
             } else {
                 throw new CustomException("Expense has related bill installments", HttpStatus.CONFLICT);
             }
         }
 
 
-        /**
-         * Método que realiza la baja lógica del gasto si no tiene cobros relacionados.
-         */
+    /**
+     * Performs a logical deletion of an expense by setting its enabled status to false.
+     *
+     * @param expenseEntity The expense entity to be logically deleted.
+     */
         private void performLogicalDeletion(ExpenseEntity expenseEntity) {
             expenseEntity.setEnabled(Boolean.FALSE);
             expenseRepository.save(expenseEntity);
         }
 
-        /**
-         * Método que genera una nota de crédito en caso de existir cobros relacionados.
-         */
+    /**
+     * Creates a credit note for an existing expense.
+     *
+     * @param id The ID of the expense for which to create a credit note.
+     * @return A DtoResponseExpense object containing the created credit note details.
+     * @throws CustomException if the expense already has a credit note or other validation errors occur.
+     */
         @Transactional
-        public void createCreditNoteForExpense(Integer id) {
+        public DtoResponseExpense createCreditNoteForExpense(Integer id) {
 
+            DtoResponseExpense dtoResponseExpense = new DtoResponseExpense();
             Optional<ExpenseEntity> expenseEntityOptional = expenseRepository.findById(id);
             if (expenseEntityOptional.get().getNoteCredit()) {
                 throw new CustomException("The expense have a note of credit", HttpStatus.CONFLICT);
@@ -476,9 +532,9 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
                 expenseRepository.save(newExpenseEntity);
 
                 List<ExpenseInstallmentEntity> expenseInstallmentEntityList = createInstallments(newExpenseEntity, sizeOfInstallments, paymentDate);
+                List<ExpenseDistributionEntity> newExpenseDistributionList = new ArrayList<>();
                 if(!expenseEntity.getDistributions().isEmpty())
                 {
-                    List<ExpenseDistributionEntity> newExpenseDistributionList = new ArrayList<>();
 
                     for (ExpenseDistributionEntity originalDistribution : expenseEntity.getDistributions()) {
                         ExpenseDistributionEntity newDistribution = new ExpenseDistributionEntity();
@@ -496,19 +552,62 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
 
                     expenseDistributionRepository.saveAll(newExpenseDistributionList);
                 }
+                dtoResponseExpense = setExpenseEntityToDtoResponse(expenseEntity,expenseInstallmentEntityList,newExpenseDistributionList);
                 saveInstallments(expenseInstallmentEntityList, newExpenseEntity);
             }
+            return dtoResponseExpense;
         }
-
-        /**
-         * Método que crea una entidad de gasto para la nota de crédito.
-         */
+    /**
+     * Converts an ExpenseEntity and related data to a DtoResponseExpense.
+     *
+     * @param expenseEntity The expense entity to convert.
+     * @param expenseInstallmentEntityList The list of installment entities associated with the expense.
+     * @param newExpenseDistributionList The list of distribution entities associated with the expense.
+     * @return A DtoResponseExpense object containing the expense details.
+     */
+    private DtoResponseExpense setExpenseEntityToDtoResponse(ExpenseEntity expenseEntity, List<ExpenseInstallmentEntity> expenseInstallmentEntityList, List<ExpenseDistributionEntity> newExpenseDistributionList) {
+        DtoResponseExpense dtoResponseExpense = new DtoResponseExpense();
+        dtoResponseExpense.setExpenseDate(expenseEntity.getExpenseDate());
+        dtoResponseExpense.setExpenseType(ExpenseType.NOTE_OF_CREDIT);
+        dtoResponseExpense.setFileId(expenseEntity.getFileId());
+        dtoResponseExpense.setDescription(expenseEntity.getDescription());
+        DtoCategory dtoCategory = new DtoCategory();
+        dtoCategory.setId(expenseEntity.getCategory().getId());
+        dtoCategory.setDescription(expenseEntity.getCategory().getDescription());
+        dtoResponseExpense.setDtoCategory(dtoCategory);
+        dtoResponseExpense.setInvoiceNumber(expenseEntity.getInvoiceNumber());
+        dtoResponseExpense.setProviderId(expenseEntity.getProviderId());
+        List<DtoInstallment> dtoInstallments = new ArrayList<>();
+        for(ExpenseInstallmentEntity expenseInstallmentEntity : expenseEntity.getInstallmentsList())
+        {
+            DtoInstallment dtoInstallment = new DtoInstallment();
+            dtoInstallment.setPaymentDate(expenseInstallmentEntity.getPaymentDate());
+            dtoInstallment.setInstallmentNumber(expenseInstallmentEntity.getInstallmentNumber());
+            dtoInstallments.add(dtoInstallment);
+        }
+        dtoResponseExpense.setDtoInstallmentList(dtoInstallments);
+        List<DtoDistribution> dtoDistributions = new ArrayList<>();
+        for(ExpenseDistributionEntity expenseDistributionEntity : expenseEntity.getDistributions()){
+            DtoDistribution dtoDistribution = new DtoDistribution();
+            dtoDistribution.setProportion(expenseDistributionEntity.getProportion());
+            dtoDistribution.setOwnerId(expenseDistributionEntity.getOwnerId());
+            dtoDistributions.add(dtoDistribution);
+        }
+        dtoResponseExpense.setDtoDistributionList(dtoDistributions);
+        return dtoResponseExpense;
+    }
+    /**
+     * Creates a new ExpenseEntity for a credit note based on an original expense.
+     *
+     * @param originalExpenseEntity The original expense entity.
+     * @return A new ExpenseEntity representing the credit note.
+     */
         private ExpenseEntity createCreditNoteEntity(ExpenseEntity originalExpenseEntity) {
             ExpenseEntity newExpenseEntity = new ExpenseEntity();
             newExpenseEntity.setExpenseType(ExpenseType.NOTE_OF_CREDIT);
             newExpenseEntity.setEnabled(Boolean.TRUE);
             newExpenseEntity.setExpenseDate(LocalDate.now());
-            newExpenseEntity.setDescription("Note of credit of "+originalExpenseEntity.getDescription()); // description??
+            newExpenseEntity.setDescription("Note of credit"); // description??
             newExpenseEntity.setDistributions(new ArrayList<>());
             newExpenseEntity.setAmount(originalExpenseEntity.getAmount().negate());
             newExpenseEntity.setFileId(originalExpenseEntity.getFileId());
@@ -524,10 +623,14 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
 
             return newExpenseEntity;
         }
-
-        /**
-         * Método que crea las cuotas para la nueva nota de crédito.
-         */
+    /**
+     * Creates a list of ExpenseInstallmentEntity objects for a credit note.
+     *
+     * @param newExpenseEntity The new expense entity representing the credit note.
+     * @param sizeOfInstallments The number of installments to create.
+     * @param paymentDate The initial payment date for the installments.
+     * @return A list of ExpenseInstallmentEntity objects.
+     */
         private List<ExpenseInstallmentEntity> createInstallments(ExpenseEntity newExpenseEntity, int sizeOfInstallments, LocalDate paymentDate) {
             List<ExpenseInstallmentEntity> expenseInstallmentEntityList = new ArrayList<>();
 
@@ -548,9 +651,12 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
             return expenseInstallmentEntityList;
         }
 
-        /**
-         * Método que guarda las cuotas en la base de datos.
-         */
+    /**
+     * Saves a list of ExpenseInstallmentEntity objects and associates them with a new expense entity.
+     *
+     * @param expenseInstallmentEntityList The list of expense installment entities to save.
+     * @param newExpenseEntity The new expense entity to associate with the installments.
+     */
         private void saveInstallments(List<ExpenseInstallmentEntity> expenseInstallmentEntityList, ExpenseEntity newExpenseEntity) {
             for (ExpenseInstallmentEntity expenseInstallmentEntity : expenseInstallmentEntityList) {
                 expenseInstallmentEntity.setExpense(newExpenseEntity);

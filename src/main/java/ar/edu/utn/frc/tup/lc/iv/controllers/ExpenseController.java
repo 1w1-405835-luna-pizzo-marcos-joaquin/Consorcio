@@ -2,6 +2,7 @@ package ar.edu.utn.frc.tup.lc.iv.controllers;
 
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoExpenseQuery;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoRequestExpense;
+import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoResponseDeleteExpense;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoResponseExpense;
 import ar.edu.utn.frc.tup.lc.iv.services.impl.ExpenseService;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseService;
@@ -28,7 +29,6 @@ public class ExpenseController {
     @Autowired
     private final IExpenseService expenseService;
 
-    //TODO VER PORQUE NO DEVUELVE EL FILE ID
     @Operation(summary = "Create a new expense",
             description = "Creates a new expense with the given details and optional file")
     @ApiResponse(responseCode = "200", description = "Expense created successfully",
@@ -41,22 +41,20 @@ public class ExpenseController {
         return expenseService.postExpense(request, file);
     }
 
-    //TODO MANDAR MENSAJE DE CONFIRMACION DE BORRADO
     @Operation(summary = "Delete logic or expense")
     @ApiResponse(responseCode = "204", description = "Expense delete logic successfully",
     content = @Content(mediaType = "application/json"))
     @DeleteMapping()
-    public ResponseEntity<Void> deleteExpenseByIdLogicOrThrowException(@RequestParam Integer id) {
-        expenseService.deteleExpense(id);
-        return ResponseEntity.noContent().build();
+    public DtoResponseDeleteExpense deleteExpenseByIdLogicOrThrowException(@RequestParam Integer id) {
+        return expenseService.deteleExpense(id);
+
     }
     @Operation(summary = "Create note of credit")
     @ApiResponse(responseCode = "204", description = "Note of credit created succcessfully",
             content = @Content(mediaType = "application/json"))
     @DeleteMapping("/note_credit")
-    public ResponseEntity<Void> createNoteOfCredit(@RequestParam Integer id) {
-        expenseService.createCreditNoteForExpense(id);
-        return ResponseEntity.noContent().build();
+    public DtoResponseExpense createNoteOfCredit(@RequestParam Integer id) {
+        return expenseService.createCreditNoteForExpense(id);
     }
 
     /**
