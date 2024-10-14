@@ -10,10 +10,10 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
+@Builder
 public class ExpenseOwnerVisualizerDTO {
     private Integer id;
+    private Integer expenseId;
     private String description;
     private Integer providerId;
     private LocalDate expenseDate;
