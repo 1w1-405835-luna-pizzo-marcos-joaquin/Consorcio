@@ -54,7 +54,7 @@ public class ExpenseEntity extends AuditEntity {
     @Column(name = "installments")
     private Integer installments;
 
-    @Column(name = "note_credit")
+    @Column(name = "note_credit", nullable = false)
     private Boolean noteCredit;
 
     @JsonIgnore

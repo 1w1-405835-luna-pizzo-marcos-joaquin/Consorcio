@@ -469,44 +469,86 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
     return dtoExpenseQuery;
 }
     private DtoExpenseQuery mapModelToDtoExpense(ExpenseModel expenseModel, List<OwnerDto> ownerDtos) {
-        DtoExpenseQuery dtoExpenseQuery = modelMapper.map(expenseModel, DtoExpenseQuery.class);
+        DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
+
+        try {
+            dtoExpenseQuery = modelMapper.map(expenseModel, DtoExpenseQuery.class);
+        } catch (Exception e) {
+            // Maneja la excepción del ModelMapper
+            System.err.println("Error al mapear el modelo a DTO: " + e.getMessage());
+            // Puedes continuar el mapeo sin problema
+        }
 
         // Set provider information
-        if (expenseModel.getProviderId() != null) {
-            dtoExpenseQuery.setProvider(providerRestClient.getProvider(expenseModel.getProviderId()));
-        } else {
-            dtoExpenseQuery.setProvider("");
+        try {
+            if (expenseModel.getProviderId() != null) {
+                dtoExpenseQuery.setProvider(providerRestClient.getProvider(expenseModel.getProviderId()));
+            } else {
+                dtoExpenseQuery.setProvider("");
+            }
+        } catch (Exception e) {
+            System.err.println("Error al obtener el proveedor: " + e.getMessage());
         }
 
         // Set basic expense information
         dtoExpenseQuery.setExpenseDate(expenseModel.getExpenseDate());
         dtoExpenseQuery.setFileId(expenseModel.getFileId() != null ? expenseModel.getFileId().toString() : null);
-        dtoExpenseQuery.setCategory(expenseModel.getCategory().getDescription());
+
+        // Validate category and set it
+        try {
+            dtoExpenseQuery.setCategory(expenseModel.getCategory() != null ? expenseModel.getCategory().getDescription() : "Unknown");
+        } catch (Exception e) {
+            System.err.println("Error al mapear la categoría: " + e.getMessage());
+        }
+
         dtoExpenseQuery.setDistributionList(new ArrayList<>());
         dtoExpenseQuery.setInstallmentList(new ArrayList<>());
 
-        // Map distributions
-        for (ExpenseDistributionModel distributionModel : expenseModel.getDistributions()) {
-            OwnerDto  ownerDto= ownerDtos.stream().filter(m->m.getId().equals(distributionModel.getOwnerId())).findFirst().get();
-            String ownerName = ownerDto.getLastName() + " "+ownerDto.getName();
+        // Map distributions, continuando aunque no se encuentre el Owner
+        if (expenseModel.getDistributions() != null) {
+            for (ExpenseDistributionModel distributionModel : expenseModel.getDistributions()) {
+                try {
+                    // Intentar obtener el OwnerDto
+                    Optional<OwnerDto> ownerDtoOptional = ownerDtos.stream()
+                            .filter(m -> m.getId().equals(distributionModel.getOwnerId()))
+                            .findFirst();
 
-            BigDecimal amount = expenseModel.getAmount().multiply(distributionModel.getProportion());
+                    String ownerName = ownerDtoOptional
+                            .map(ownerDto -> ownerDto.getLastName() + " " + ownerDto.getName())
+                            .orElse("JUAN");
 
-            DtoExpenseDistributionQuery dtoExpenseDistributionQuery = new DtoExpenseDistributionQuery();
-            dtoExpenseDistributionQuery.setOwnerFullName(ownerName);
-            dtoExpenseDistributionQuery.setAmount(amount);
-            dtoExpenseDistributionQuery.setOwnerId(distributionModel.getOwnerId());
+                    // Calcular el monto
+                    BigDecimal amount = BigDecimal.ZERO;
+                    if (expenseModel.getAmount() != null && distributionModel.getProportion() != null) {
+                        amount = expenseModel.getAmount().multiply(distributionModel.getProportion());
+                    }
 
-            dtoExpenseQuery.getDistributionList().add(dtoExpenseDistributionQuery);
+                    DtoExpenseDistributionQuery dtoExpenseDistributionQuery = new DtoExpenseDistributionQuery();
+                    dtoExpenseDistributionQuery.setOwnerFullName(ownerName);
+                    dtoExpenseDistributionQuery.setAmount(amount);
+                    dtoExpenseDistributionQuery.setOwnerId(distributionModel.getOwnerId());
+
+                    dtoExpenseQuery.getDistributionList().add(dtoExpenseDistributionQuery);
+                } catch (Exception e) {
+                    System.err.println("Error al mapear la distribución: " + e.getMessage());
+                    // Continuar el mapeo sin detener el flujo
+                }
+            }
         }
 
         // Map installments
-        for (ExpenseInstallmentModel installmentModel : expenseModel.getInstallmentsList()) {
-            DtoExpenseInstallment dtoExpenseInstallment = new DtoExpenseInstallment();
-            dtoExpenseInstallment.setInstallmentNumber(installmentModel.getInstallmentNumber());
-            dtoExpenseInstallment.setPaymentDate(installmentModel.getPaymentDate());
+        if (expenseModel.getInstallmentsList() != null) {
+            for (ExpenseInstallmentModel installmentModel : expenseModel.getInstallmentsList()) {
+                try {
+                    DtoExpenseInstallment dtoExpenseInstallment = new DtoExpenseInstallment();
+                    dtoExpenseInstallment.setInstallmentNumber(installmentModel.getInstallmentNumber());
+                    dtoExpenseInstallment.setPaymentDate(installmentModel.getPaymentDate());
 
-            dtoExpenseQuery.getInstallmentList().add(dtoExpenseInstallment);
+                    dtoExpenseQuery.getInstallmentList().add(dtoExpenseInstallment);
+                } catch (Exception e) {
+                    System.err.println("Error al mapear las cuotas: " + e.getMessage());
+                }
+            }
         }
 
         return dtoExpenseQuery;
@@ -574,8 +616,9 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
             Optional<List<BillExpenseInstallmentsEntity>> billExpenseInstallmentsEntity = billExpenseInstallmentsRepository.findByExpenseId(id);
 
             if (billExpenseInstallmentsEntity.isPresent()) {
+                expenseEntityOptional.get().setNoteCredit(Boolean.TRUE);
+                expenseRepository.save(expenseEntityOptional.get());
                 int sizeOfInstallments = billExpenseInstallmentsEntity.get().size();
-                BigDecimal amount = expenseEntity.getAmount().negate();
                 LocalDate paymentDate = LocalDate.now();
 
                 ExpenseEntity newExpenseEntity = createCreditNoteEntity(expenseEntity);
@@ -656,6 +699,7 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
             ExpenseEntity newExpenseEntity = new ExpenseEntity();
             newExpenseEntity.setExpenseType(ExpenseType.NOTE_OF_CREDIT);
             newExpenseEntity.setEnabled(Boolean.TRUE);
+            newExpenseEntity.setNoteCredit(Boolean.TRUE);
             newExpenseEntity.setExpenseDate(LocalDate.now());
             newExpenseEntity.setDescription("Note of credit"); // description??
             newExpenseEntity.setDistributions(new ArrayList<>());
