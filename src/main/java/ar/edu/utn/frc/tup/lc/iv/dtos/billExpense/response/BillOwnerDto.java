@@ -1,5 +1,6 @@
 package ar.edu.utn.frc.tup.lc.iv.dtos.billExpense.response;
 
+import ar.edu.utn.frc.tup.lc.iv.dtos.sanction.FineDto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,7 +18,7 @@ public class BillOwnerDto {
     @JsonProperty("field_size")
     private Integer fieldSize;
     @JsonProperty("fines")
-    private List<ItemDto> fines;
+    private List<FineDto> fines;
     @JsonProperty("expenses_common")
     private List<ItemDto> expensesCommon;
     @JsonProperty("expenses_extraordinary")
