@@ -22,7 +22,7 @@ import java.util.UUID;
 public class FileManagerRestClient {
     private final RestTemplate restTemplate;
     //TODO Ajustar url
-    private static final String ROOT_URL = "https://filemanager.com";
+    private static final String ROOT_URL = "http://localhost:8085/fileManager";
 
     public FileManagerRestClient(RestTemplate restTemplateParam) {
         this.restTemplate = restTemplateParam;
