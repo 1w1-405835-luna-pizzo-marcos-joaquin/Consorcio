@@ -2,7 +2,6 @@ package ar.edu.utn.frc.tup.lc.iv.services.impl;
 
 import ar.edu.utn.frc.tup.lc.iv.client.OwnerRestClient;
 import ar.edu.utn.frc.tup.lc.iv.client.ProviderRestClient;
-import ar.edu.utn.frc.tup.lc.iv.comunication.FileServerRestClient;
 import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoDistribution;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoExpenseQuery;
@@ -49,9 +48,6 @@ class ExpenseServiceTest {
     private ExpenseCategoryService expenseCategoryService;
     @Mock
     private BillExpenseInstallmentsRepository billExpenseInstallmentsRepository;
-    @Mock
-    private FileServerRestClient fileServerRestClient; //mock this when file server works
-
     @Mock
     private ProviderRestClient providerRestClient;
     @Mock

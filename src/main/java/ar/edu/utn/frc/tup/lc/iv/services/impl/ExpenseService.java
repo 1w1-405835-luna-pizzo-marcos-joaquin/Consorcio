@@ -1,10 +1,11 @@
 package ar.edu.utn.frc.tup.lc.iv.services.impl;
 
+import ar.edu.utn.frc.tup.lc.iv.client.FileManagerRestClient;
 import ar.edu.utn.frc.tup.lc.iv.client.OwnerRestClient;
 import ar.edu.utn.frc.tup.lc.iv.client.ProviderRestClient;
-import ar.edu.utn.frc.tup.lc.iv.comunication.FileServerRestClient;
 import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.*;
+import ar.edu.utn.frc.tup.lc.iv.dtos.fileManager.UuidResponseDto;
 import ar.edu.utn.frc.tup.lc.iv.dtos.owner.OwnerDto;
 import ar.edu.utn.frc.tup.lc.iv.entities.BillExpenseInstallmentsEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseDistributionEntity;
@@ -51,7 +52,7 @@ public class ExpenseService implements IExpenseService {
     @Autowired
     private ExpenseCategoryService expenseCategoryService;
     @Autowired
-    private FileServerRestClient fileServerRestClient;
+    private FileManagerRestClient fileManagerRestClient;
     @Autowired
     private BillExpenseInstallmentsRepository billExpenseInstallmentsRepository;
     @Autowired
@@ -80,8 +81,8 @@ public class ExpenseService implements IExpenseService {
             }
             expenseModel.setInstallmentsList(expenseInstallmentModels);
             expenseModel.setDistributions(expenseDistributionModels);
-            UUID fileId = UUID.randomUUID();//TODO FILE SERVER
-            expenseModel.setFileId(fileId);
+            ResponseEntity<UuidResponseDto> fileId = fileManagerRestClient.uploadFile(file, null, null);
+            expenseModel.setFileId(Objects.requireNonNull(fileId.getBody()).getUuid());
             DtoResponseExpense dtoResponseExpense = setDtoResponseExpense(expenseModel);
             saveExpenseEntity(expenseModel, expenseInstallmentModels, expenseDistributionModels);
             return ResponseEntity.ok(dtoResponseExpense);

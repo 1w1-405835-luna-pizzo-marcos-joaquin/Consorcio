@@ -28,7 +28,9 @@ services:
       - ./dbscript/trigers.sql:/docker-entrypoint-initdb.d/03-trigers.sql
 
     ports:
-      - "3306:3306"
+      - "3307:3306"
+    expose:
+      - "3306"
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 10s
