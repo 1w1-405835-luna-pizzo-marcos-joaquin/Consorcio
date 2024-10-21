@@ -9,16 +9,13 @@ services:
       db:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3307/dbexpense
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/dbexpense
       SPRING_DATASOURCE_USERNAME: gastos
       SPRING_DATASOURCE_PASSWORD: 123
       APP_NAME: expenses-manager
 
   db:
     image: mysql:8.0
-    command:
-      - --port=3307
-      - --bind-address=0.0.0.0
     environment:
       MYSQL_DATABASE: dbexpense
       MYSQL_USER: gastos
@@ -31,7 +28,9 @@ services:
       - ./dbscript/trigers.sql:/docker-entrypoint-initdb.d/03-trigers.sql
 
     ports:
-      - "3307:3307"
+      - "3307:3306"
+    expose:
+      - "3306"
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 10s
