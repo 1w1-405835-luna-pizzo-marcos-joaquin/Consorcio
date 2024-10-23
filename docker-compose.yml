@@ -13,6 +13,9 @@ services:
       SPRING_DATASOURCE_USERNAME: gastos
       SPRING_DATASOURCE_PASSWORD: 123
       APP_NAME: expenses-manager
+      API-OWNER:
+      API-PROVIDER:
+      API-SANCTION:
 
   db:
     image: mysql:8.0
