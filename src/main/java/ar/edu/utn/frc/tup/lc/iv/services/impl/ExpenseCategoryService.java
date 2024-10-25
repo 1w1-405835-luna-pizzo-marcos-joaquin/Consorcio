@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.time.LocalDateTime;
@@ -49,13 +50,14 @@ public class ExpenseCategoryService implements IExpenseCategoryService {
      * @throws CustomException if no categories are found.
      */
     public List<DtoCategory>  getAllCategories() {
-        List<ExpenseCategoryEntity> expenseCategoryEntities = expenseCategoryRepository.findAllEnabled();
+        List<ExpenseCategoryEntity> expenseCategoryEntities = expenseCategoryRepository.findAll();
         if ( Collections.emptyList().equals(expenseCategoryEntities) ) {
             throw new CustomException("No categories found", HttpStatus.NOT_FOUND);
         }
-        DtoCategory dtoCategory = new DtoCategory();
+
         List<DtoCategory> dtoCategories = new ArrayList<>();
         for (ExpenseCategoryEntity categoryEntity : expenseCategoryEntities) {
+            DtoCategory dtoCategory = new DtoCategory();
             dtoCategory.setId(categoryEntity.getId());
             dtoCategory.setDescription(categoryEntity.getDescription());
             dtoCategory.setLastUpdatedDatetime(categoryEntity.getLastUpdatedDatetime());
