@@ -16,5 +16,5 @@ public class DtoExpenseDistributionQuery {
     private String ownerFullName;
     private BigDecimal amount;
 
-    private double proportion; //Proporcion
+    private BigDecimal proportion; //Proporcion
 }

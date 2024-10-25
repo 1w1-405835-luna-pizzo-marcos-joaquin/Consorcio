@@ -453,6 +453,7 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
         dtoExpenseDistributionQuery.setOwnerFullName(ownerName);
         dtoExpenseDistributionQuery.setAmount(amount);
         dtoExpenseDistributionQuery.setOwnerId(distributionEntity.getOwnerId());
+        dtoExpenseDistributionQuery.setProportion(distributionEntity.getProportion());
 
         dtoExpenseQuery.getDistributionList().add(dtoExpenseDistributionQuery);
     }

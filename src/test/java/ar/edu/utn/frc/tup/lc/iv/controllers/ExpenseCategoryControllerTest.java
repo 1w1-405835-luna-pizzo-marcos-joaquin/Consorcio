@@ -30,8 +30,8 @@ public class ExpenseCategoryControllerTest {
     @Test
     void testGetAllCategories() {
         List<DtoCategory> mockCategories = Arrays.asList(
-                new DtoCategory(1, "Category1", LocalDateTime.now()),
-                new DtoCategory(2, "Category2", LocalDateTime.now())
+                new DtoCategory(1, "Category1", LocalDateTime.now(), "Activo"),
+                new DtoCategory(2, "Category2", LocalDateTime.now(), "Activo")
         );
         when(expenseCategoryService.getAllCategories()).thenReturn(mockCategories);
 

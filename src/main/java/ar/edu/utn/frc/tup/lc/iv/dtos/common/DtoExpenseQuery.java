@@ -32,5 +32,5 @@ public class DtoExpenseQuery {
     private List<DtoExpenseDistributionQuery> distributionList;
     private List<DtoExpenseInstallment> installmentList;
 
-    private int invoiceNumber; //Numero de cuota
+    private Integer invoiceNumber; //Numero de cuota
 }

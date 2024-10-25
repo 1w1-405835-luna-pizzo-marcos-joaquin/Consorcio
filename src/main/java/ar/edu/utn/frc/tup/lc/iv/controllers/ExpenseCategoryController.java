@@ -16,6 +16,11 @@ public class ExpenseCategoryController {
     @Autowired
     private IExpenseCategoryService expenseCategoryService;
 
+    /**
+     * Retrieves all available categories.
+     *
+     * @return a ResponseEntity containing a list of DtoCategory objects.
+     */
     @GetMapping("/all")
     public ResponseEntity<List<DtoCategory>>  getAllCategories() {
         return ResponseEntity.ok( expenseCategoryService.getAllCategories());

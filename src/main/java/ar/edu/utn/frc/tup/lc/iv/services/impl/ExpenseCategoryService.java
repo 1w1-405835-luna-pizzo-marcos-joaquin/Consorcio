@@ -23,12 +23,25 @@ public class ExpenseCategoryService implements IExpenseCategoryService {
     private ExpenseCategoryRepository expenseCategoryRepository;
     @Autowired
     private ModelMapper modelMapper;
+
+    /**
+     * Retrieves an {@link ExpenseCategoryModel} based on the category ID.
+     *
+     * @param id the ID of the expense category to retrieve.
+     * @return the corresponding {@link ExpenseCategoryModel}, or {@code null} if not found.
+     */
     @Override
     public ExpenseCategoryModel getCategoryModel(Integer id) {
         Optional<ExpenseCategoryEntity> expenseCategoryEntity = expenseCategoryRepository.findById(id);
         return expenseCategoryEntity.map(categoryEntity -> modelMapper.map(categoryEntity, ExpenseCategoryModel.class)).orElse(null);
     }
 
+    /**
+     * Retrieves a list of all enabled categories as DtoCategory objects.
+     *
+     * @return a list of enabled categories, mapped to DtoCategory DTOs.
+     * @throws CustomException if no categories are found.
+     */
     public List<DtoCategory>  getAllCategories() {
         List<ExpenseCategoryEntity> expenseCategoryEntities = expenseCategoryRepository.findAllEnabled();
         if ( Collections.emptyList().equals(expenseCategoryEntities) ) {
