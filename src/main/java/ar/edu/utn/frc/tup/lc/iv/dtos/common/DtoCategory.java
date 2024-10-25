@@ -14,4 +14,6 @@ public class DtoCategory {
     private Integer id;
     private String description;
     private LocalDateTime lastUpdatedDatetime;
+
+    private String state;
 }

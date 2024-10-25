@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.boot.actuate.autoconfigure.metrics.MetricsProperties;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,4 +31,6 @@ public class DtoExpenseQuery {
     private String fileId;
     private List<DtoExpenseDistributionQuery> distributionList;
     private List<DtoExpenseInstallment> installmentList;
+
+    private Integer invoiceNumber; //Numero de cuota
 }

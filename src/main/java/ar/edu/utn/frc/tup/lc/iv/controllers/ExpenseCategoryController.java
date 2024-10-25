@@ -34,6 +34,11 @@ public class ExpenseCategoryController {
     }
 
 
+    /**
+     * Retrieves all available categories.
+     *
+     * @return a ResponseEntity containing a list of DtoCategory objects.
+     */
     @GetMapping("/all")
     public ResponseEntity<List<DtoCategory>>  getAllCategories() {
         return ResponseEntity.ok( service.getAllCategories());
