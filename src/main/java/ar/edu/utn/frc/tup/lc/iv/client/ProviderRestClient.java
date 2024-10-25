@@ -3,6 +3,7 @@ package ar.edu.utn.frc.tup.lc.iv.client;
 import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -15,7 +16,8 @@ import java.util.List;
 public class ProviderRestClient {
 
     private final RestTemplate restTemplate;
-    private static final String ROOT_URL = "https://my-json-server.typicode.com/EbeltramoUtn/demoTP";
+    @Value("${app.api-provider}")
+    private String ROOT_URL;
     @Autowired
     public ProviderRestClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;

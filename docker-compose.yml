@@ -13,6 +13,9 @@ services:
       SPRING_DATASOURCE_USERNAME: gastos
       SPRING_DATASOURCE_PASSWORD: 123
       APP_NAME: expenses-manager
+      API-OWNER:
+      API-PROVIDER:
+      API-SANCTION:
 
   db:
     image: mysql:8.0
@@ -28,7 +31,9 @@ services:
       - ./dbscript/trigers.sql:/docker-entrypoint-initdb.d/03-trigers.sql
 
     ports:
-      - "3306:3306"
+      - "3307:3306"
+    expose:
+      - "3306"
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 10s

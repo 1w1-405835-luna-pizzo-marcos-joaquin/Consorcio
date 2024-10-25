@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class BillExpenseFineModel extends AuditModel {
     private Integer fineId;
+    private Integer plotId;
     private String description;
     private BigDecimal amount;
 }

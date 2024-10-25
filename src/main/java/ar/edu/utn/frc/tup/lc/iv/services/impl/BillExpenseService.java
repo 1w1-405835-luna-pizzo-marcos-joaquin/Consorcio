@@ -6,6 +6,7 @@ import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import ar.edu.utn.frc.tup.lc.iv.dtos.billExpense.response.BillExpenseDto;
 import ar.edu.utn.frc.tup.lc.iv.dtos.billExpense.response.BillOwnerDto;
 import ar.edu.utn.frc.tup.lc.iv.dtos.billExpense.response.ItemDto;
+import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoExpenseQuery;
 import ar.edu.utn.frc.tup.lc.iv.dtos.owner.OwnerDto;
 import ar.edu.utn.frc.tup.lc.iv.dtos.owner.PlotDto;
 import ar.edu.utn.frc.tup.lc.iv.dtos.sanction.FineDto;
@@ -215,6 +216,7 @@ public class BillExpenseService implements IBillExpenseService {
                     billExpenseFineModel.setFineId(fine.getId());
                     billExpenseFineModel.setAmount(fine.getAmount());
                     billExpenseFineModel.setDescription(fine.getDescription());
+                    billExpenseFineModel.setPlotId(fine.getPlotId());
 
                     billExpenseFineModel.setCreatedUser(CREATE_USER);
                     billExpenseFineModel.setLastUpdatedUser(UPDATE_USER);
@@ -408,7 +410,7 @@ public class BillExpenseService implements IBillExpenseService {
      */
     private BillExpenseDto billRecordModelToDto(BillRecordModel billRecordModel) {
         try {
-            Map<Integer,String> installmentsType = getInstallmentAndExpenseType(billRecordModel.getId());
+            Map<Integer,DtoExpenseQuery> installmentsType = getInstallmentAndExpenseType(billRecordModel.getId());
             BillExpenseDto billExpenseDto = new BillExpenseDto();
             billExpenseDto.setId(billRecordModel.getId());
             billExpenseDto.setStartDate(billRecordModel.getStart());
@@ -435,7 +437,48 @@ public class BillExpenseService implements IBillExpenseService {
      * @param ownerModel The model to map.
      * @return {@link BillOwnerDto} The mapped DTO.
      */
-    private BillOwnerDto billOwnerModelToDto(BillExpenseOwnerModel ownerModel, Map<Integer,String> installmentsType) {
+    //NO BORRAR, PUEDE SERVIR PARA DESPUS
+//    private BillOwnerDto billOwnerModelToDto(BillExpenseOwnerModel ownerModel, Map<Integer,String> installmentsType) {
+//        BillOwnerDto ownerDto = BillOwnerDto.builder()
+//                .id(ownerModel.getId())
+//                .fieldSize(ownerModel.getFieldSize())
+//                .expensesCommon(new ArrayList<>())
+//                .expensesExtraordinary(new ArrayList<>())
+//                .expensesIndividual(new ArrayList<>())
+//                .fines(new ArrayList<>())
+//                .notesOfCredit(new ArrayList<>())
+//                .build();
+//
+//        // Map fines and installments based on expense type
+//        for (BillExpenseFineModel fineModel : ownerModel.getBillExpenseFines()) {
+//            ownerDto.getFines().add(billFineModelToDto(fineModel));
+//        }
+//        for (BillExpenseInstallmentModel installmentModel : ownerModel.getBillExpenseInstallments()) {
+//            String type = installmentsType.get(installmentModel.getId());
+//            if (type == null)
+//                throw new CustomException("Expense Type is not defined", HttpStatus.BAD_REQUEST);
+//            ExpenseType typeInstallment = ExpenseType.valueOf(type);
+//            if (typeInstallment.equals(ExpenseType.COMUN)) {
+//                ownerDto.getExpensesCommon().add(billInstallmentModelToDto(installmentModel));
+//                continue;
+//            }
+//            if (typeInstallment.equals(ExpenseType.INDIVIDUAL)) {
+//                ownerDto.getExpensesIndividual().add(billInstallmentModelToDto(installmentModel));
+//                continue;
+//            }
+//            if (typeInstallment.equals(ExpenseType.EXTRAORDINARIO)) {
+//                ownerDto.getExpensesExtraordinary().add(billInstallmentModelToDto(installmentModel));
+//                continue;
+//            }
+//            if (typeInstallment.equals(ExpenseType.NOTE_OF_CREDIT)) {
+//                ownerDto.getNotesOfCredit().add(billInstallmentModelToDto(installmentModel));
+//                continue;
+//            }
+//        }
+//
+//        return ownerDto;
+//    }
+    private BillOwnerDto billOwnerModelToDto(BillExpenseOwnerModel ownerModel, Map<Integer, DtoExpenseQuery> installmentsType) {
         BillOwnerDto ownerDto = BillOwnerDto.builder()
                 .id(ownerModel.getId())
                 .fieldSize(ownerModel.getFieldSize())
@@ -446,45 +489,71 @@ public class BillExpenseService implements IBillExpenseService {
                 .notesOfCredit(new ArrayList<>())
                 .build();
 
-        // Map fines and installments based on expense type
+        // Map para agrupar y sumar los montos por categoría
+        Map<String, BigDecimal> commonExpensesByCategory = new HashMap<>();
+        Map<String, BigDecimal> extraordinaryExpensesByCategory = new HashMap<>();
+        Map<String, BigDecimal> individualExpensesByCategory = new HashMap<>();
+        Map<String, BigDecimal> notesOfCreditByCategory = new HashMap<>();
+
+        // Procesar los installments para clasificar por tipo y sumar por categoría
+        for (BillExpenseInstallmentModel installmentModel : ownerModel.getBillExpenseInstallments()) {
+            DtoExpenseQuery info = installmentsType.get(installmentModel.getId());
+            if (info == null) {
+                throw new CustomException("Expense Type or Category not found for installment ID: " + installmentModel.getId(), HttpStatus.BAD_REQUEST);
+            }
+            // Validación del tipo de expensa
+            String expenseTypeStr = info.getExpenseType();
+            ExpenseType expenseType;
+
+            try {
+                expenseType = ExpenseType.valueOf(expenseTypeStr);
+            } catch (IllegalArgumentException e) {
+                throw new CustomException("Invalid Expense Type: " + expenseTypeStr + " for installment ID: " + installmentModel.getId(), HttpStatus.BAD_REQUEST);
+            }
+
+            // Procesar el tipo de expensa
+            switch (expenseType) {
+                case COMUN -> commonExpensesByCategory.merge(info.getCategory(), installmentModel.getAmount(), BigDecimal::add);
+                case EXTRAORDINARIO -> extraordinaryExpensesByCategory.merge(info.getCategory(), installmentModel.getAmount(), BigDecimal::add);
+                case INDIVIDUAL -> individualExpensesByCategory.merge(info.getCategory(), installmentModel.getAmount(), BigDecimal::add);
+                case NOTE_OF_CREDIT -> notesOfCreditByCategory.merge(info.getCategory(), installmentModel.getAmount(), BigDecimal::add);
+            }
+        }
+
+        // Convertir los mapas a listas de ItemDto
+        ownerDto.setExpensesCommon(mapToItemDtoList(commonExpensesByCategory));
+        ownerDto.setExpensesExtraordinary(mapToItemDtoList(extraordinaryExpensesByCategory));
+        ownerDto.setExpensesIndividual(mapToItemDtoList(individualExpensesByCategory));
+        ownerDto.setNotesOfCredit(mapToItemDtoList(notesOfCreditByCategory));
+
+        // Mapear las multas
         for (BillExpenseFineModel fineModel : ownerModel.getBillExpenseFines()) {
             ownerDto.getFines().add(billFineModelToDto(fineModel));
-        }
-        for (BillExpenseInstallmentModel installmentModel : ownerModel.getBillExpenseInstallments()) {
-            String type = installmentsType.get(installmentModel.getId());
-            if (type == null)
-                throw new CustomException("Expense Type is not defined", HttpStatus.BAD_REQUEST);
-            ExpenseType typeInstallment = ExpenseType.valueOf(type);
-            if (typeInstallment.equals(ExpenseType.COMUN)) {
-                ownerDto.getExpensesCommon().add(billInstallmentModelToDto(installmentModel));
-                continue;
-            }
-            if (typeInstallment.equals(ExpenseType.INDIVIDUAL)) {
-                ownerDto.getExpensesIndividual().add(billInstallmentModelToDto(installmentModel));
-                continue;
-            }
-            if (typeInstallment.equals(ExpenseType.EXTRAORDINARIO)) {
-                ownerDto.getExpensesExtraordinary().add(billInstallmentModelToDto(installmentModel));
-                continue;
-            }
-            if (typeInstallment.equals(ExpenseType.NOTE_OF_CREDIT)) {
-                ownerDto.getNotesOfCredit().add(billInstallmentModelToDto(installmentModel));
-                continue;
-            }
         }
 
         return ownerDto;
     }
 
+    private List<ItemDto> mapToItemDtoList(Map<String, BigDecimal> expensesByCategory) {
+        return expensesByCategory.entrySet().stream()
+                .map(entry -> builderItemDto(null, entry.getValue(), entry.getKey()))
+                .collect(Collectors.toList());
+    }
     /**
      * Maps a {@link BillExpenseFineModel} to an {@link ItemDto}.
      * This method uses the builderItemDto method to create an {@link ItemDto} from the fine model.
      *
      * @param fineModel The model to map.
-     * @return {@link ItemDto} The mapped DTO, containing the fine ID, amount, and description.
+     * @return {@link FineDto} The mapped DTO, containing the fine ID, plot id,amount, and description.
      */
-    private ItemDto billFineModelToDto(BillExpenseFineModel fineModel) {
-        return builderItemDto(fineModel.getFineId(), fineModel.getAmount(), fineModel.getDescription());
+    private FineDto billFineModelToDto(BillExpenseFineModel fineModel) {
+        FineDto result = FineDto.builder()
+                .id(fineModel.getFineId())
+                .plotId(fineModel.getPlotId())
+                .description(fineModel.getDescription())
+                .amount(fineModel.getAmount())
+                .build();
+        return result;
     }
 
     /**
@@ -560,11 +629,16 @@ public class BillExpenseService implements IBillExpenseService {
      * Retrieves a Map of installment IDs and their associated expense types.
      *
      * @param id The ID of the BillRecord.
-     * @return Map with the installment ID as the key and the expense type as the value.
+     * @return Map with the installment ID as the key and the DtoExpenseQuery with contain expense type and category.
      */
-    private Map<Integer,String> getInstallmentAndExpenseType(Integer id) {
+    private Map<Integer, DtoExpenseQuery> getInstallmentAndExpenseType(Integer id) {
         List<Object[]> repo = billExpenseInstallmentsRepository.findInstallmentIdAndExpenseTypeByBillRecordId(id);
-        return repo.stream().collect(Collectors.toMap(row-> (Integer)row[0],row->(String)row[1]));
+        return repo.stream().collect(Collectors.toMap(row -> (Integer) row[0], row -> {
+            DtoExpenseQuery info = new DtoExpenseQuery();
+            info.setExpenseType((String) row[1]);
+            info.setCategory((String) row[2]);
+            return info;
+        }));
     }
 }
 

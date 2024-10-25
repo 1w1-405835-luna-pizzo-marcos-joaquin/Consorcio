@@ -28,6 +28,9 @@ public class BillExpenseFineEntity extends AuditEntity{
     @Column(name = "fine_id", nullable = false)
     private Integer fineId;
 
+    @Column(name= "plot_id", nullable = false)
+    private Integer plotId;
+
     @Column(name = "amount", nullable = false, precision = 11, scale = 2)
     private BigDecimal amount;
 }
