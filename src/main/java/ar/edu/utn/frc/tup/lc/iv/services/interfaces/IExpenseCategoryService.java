@@ -10,6 +10,7 @@ import java.util.List;
 
 @Service
 public interface IExpenseCategoryService {
+    ExpenseCategoryDTO postCategory(String description);
     ExpenseCategoryModel getCategoryModel(Integer id);
     List<DtoCategory> getAllCategories();
     DtoResponseDeleteExpense deteleCategory(Integer id);

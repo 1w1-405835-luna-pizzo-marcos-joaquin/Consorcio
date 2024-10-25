@@ -26,6 +26,33 @@ public class ExpenseCategoryService implements IExpenseCategoryService {
     private ExpenseCategoryRepository expenseCategoryRepository;
     @Autowired
     private ModelMapper modelMapper;
+    private final Integer CREATE_USER =1;
+
+    @Override
+    public ExpenseCategoryDTO postCategory(String description) {
+        Optional<ExpenseCategoryEntity> existingCategory = expenseCategoryRepository.findByDescription(description);
+
+        if (existingCategory.isPresent()) {
+            if (existingCategory.get().getEnabled()) {
+                throw new CustomException("A category with this description already exists", HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        ExpenseCategoryEntity newCategory = new ExpenseCategoryEntity();
+        newCategory.setDescription(description);
+        newCategory.setEnabled(true);
+        newCategory.setCreatedUser(CREATE_USER);
+        newCategory.setLastUpdatedUser(CREATE_USER);
+        newCategory.setLastUpdatedDatetime(LocalDateTime.now());
+
+        expenseCategoryRepository.save(newCategory);
+
+        return ExpenseCategoryDTO.builder()
+                .id(newCategory.getId())
+                .description(description)
+                .build();
+    }
+
     @Override
     public ExpenseCategoryModel getCategoryModel(Integer id) {
         Optional<ExpenseCategoryEntity> expenseCategoryEntity = expenseCategoryRepository.findById(id);

@@ -5,16 +5,12 @@ import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoResponseDeleteExpense;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.ExpenseCategoryDTO;
 import ar.edu.utn.frc.tup.lc.iv.services.impl.ExpenseCategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.DtoCategory;
 import ar.edu.utn.frc.tup.lc.iv.services.interfaces.IExpenseCategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -24,6 +20,10 @@ public class ExpenseCategoryController {
     @Autowired
     private ExpenseCategoryService service;
 
+    @PostMapping("/postCategory")
+    public ResponseEntity<ExpenseCategoryDTO> postCategory(String description){
+        return ResponseEntity.ok(service.postCategory(description));
+    }
     @DeleteMapping("/deleteById")
     public DtoResponseDeleteExpense deleteExpenseCategory(Integer id) {
         return service.deteleCategory(id);
