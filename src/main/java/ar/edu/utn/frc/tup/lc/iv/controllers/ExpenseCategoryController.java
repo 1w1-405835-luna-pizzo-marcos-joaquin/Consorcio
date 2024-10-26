@@ -32,8 +32,11 @@ public class ExpenseCategoryController {
     public ExpenseCategoryDTO PutExpenseCategory(Integer id, String description){
         return service.putCategory(id,description);
     }
-
-
+    /**
+     * Retrieves all available categories.
+     *
+     * @return a ResponseEntity containing a list of DtoCategory objects.
+     */
     @GetMapping("/all")
     public ResponseEntity<List<DtoCategory>>  getAllCategories() {
         return ResponseEntity.ok( service.getAllCategories());
