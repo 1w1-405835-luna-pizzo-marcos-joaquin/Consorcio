@@ -20,6 +20,10 @@ public class ExpenseCategoryController {
     @Autowired
     private ExpenseCategoryService service;
 
+    @PostMapping("/postCategory")
+    public ResponseEntity<ExpenseCategoryDTO> postCategory(String description){
+        return ResponseEntity.ok(service.postCategory(description));
+    }
     @DeleteMapping("/deleteById")
     public DtoResponseDeleteExpense deleteExpenseCategory(Integer id) {
         return service.deteleCategory(id);
