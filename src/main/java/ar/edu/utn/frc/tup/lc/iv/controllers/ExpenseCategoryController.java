@@ -20,19 +20,19 @@ public class ExpenseCategoryController {
     @Autowired
 
     private IExpenseCategoryService expenseCategoryService;
-    private ExpenseCategoryService service;
+
 
     @PostMapping("/postCategory")
     public ResponseEntity<ExpenseCategoryDTO> postCategory(String description){
-        return ResponseEntity.ok(service.postCategory(description));
+        return ResponseEntity.ok(expenseCategoryService.postCategory(description));
     }
     @DeleteMapping("/deleteById")
     public DtoResponseDeleteExpense deleteExpenseCategory(Integer id) {
-        return service.deteleCategory(id);
+        return expenseCategoryService.deteleCategory(id);
     }
     @PutMapping("/putById")
     public ExpenseCategoryDTO PutExpenseCategory(Integer id, String description){
-        return service.putCategory(id,description);
+        return expenseCategoryService.putCategory(id,description);
     }
     /**
      * Retrieves all available categories.

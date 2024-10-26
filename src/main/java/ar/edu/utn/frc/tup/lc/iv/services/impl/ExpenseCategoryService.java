@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -93,6 +94,15 @@ public class ExpenseCategoryService implements IExpenseCategoryService {
         }
 
         return dtoCategories;
+    }
+
+    public DtoResponseDeleteExpense deteleCategory(Integer id) {
+        return null;
+    }
+
+
+    public ExpenseCategoryDTO putCategory(Integer id, String description) {
+        return null;
     }
 
 }
