@@ -8,12 +8,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-import java.util.Optional;
-
 @Repository
 public interface ExpenseCategoryRepository extends JpaRepository<ExpenseCategoryEntity,Integer> {
 
     @Query("select e from ExpenseCategoryEntity e where e.enabled")
     List<ExpenseCategoryEntity> findAllEnabled();
-    Optional<ExpenseCategoryEntity>findByDescription(String description);
 }

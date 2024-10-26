@@ -7,15 +7,12 @@ app:
   url: http://localhost:8080
   dev-name: Grupo7
   dev-email: "-"
-  api-owner: ${API-OWNER:https://my-json-server.typicode.com/EbeltramoUtn/demoTP}
-  api-provider: ${API-PROVIDER:https://my-json-server.typicode.com/EbeltramoUtn/demoTP}
-  api-sanction: ${API-SANCTION:https://my-json-server.typicode.com/EbeltramoUtn/demoTP}
 
 spring:
   application:
     name: expenses-manager
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/dbexpense}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/dbexpense}
     username: gastos
     password: 123
     driver-class-name: com.mysql.cj.jdbc.Driver

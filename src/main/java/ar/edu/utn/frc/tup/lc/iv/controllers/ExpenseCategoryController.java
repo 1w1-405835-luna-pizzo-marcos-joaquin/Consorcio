@@ -18,6 +18,8 @@ import java.util.List;
 @RequestMapping("/categories")
 public class ExpenseCategoryController {
     @Autowired
+
+    private IExpenseCategoryService expenseCategoryService;
     private ExpenseCategoryService service;
 
     @PostMapping("/postCategory")
@@ -39,6 +41,6 @@ public class ExpenseCategoryController {
      */
     @GetMapping("/all")
     public ResponseEntity<List<DtoCategory>>  getAllCategories() {
-        return ResponseEntity.ok( service.getAllCategories());
+        return ResponseEntity.ok( expenseCategoryService.getAllCategories());
     }
 }
