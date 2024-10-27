@@ -22,6 +22,7 @@ import java.util.UUID;
     */
 public class DtoExpenseQuery {
     private int id;
+    private String description;
     private String category;
     private String provider;
     private BigDecimal amount;
