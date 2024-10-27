@@ -8,6 +8,7 @@ import java.util.List;
 
 @Data
 public class DtoRequestExpense {
+    private Integer id;
     private String description;
     private Integer providerId;
     private LocalDate expenseDate;

@@ -39,7 +39,18 @@ public class ExpenseController {
             @RequestPart("expense") DtoRequestExpense request,
             @RequestPart(value = "file", required = false) MultipartFile file) {
         return expenseService.postExpense(request, file);
+    }@Operation(summary = "Edit a expense",
+            description = "Edit a expense with the given details and optional file")
+    @ApiResponse(responseCode = "200", description = "Expense updated successfully",
+            content = @Content(mediaType = "application/jsno",
+                    schema = @Schema(implementation = DtoResponseExpense.class)))
+    @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DtoResponseExpense> putExpense(
+            @RequestPart("expense") DtoRequestExpense request,
+            @RequestPart(value = "file", required = false) MultipartFile file){
+        return expenseService.putExpense(request,file);
     }
+
 
     @Operation(summary = "Delete logic or expense")
     @ApiResponse(responseCode = "204", description = "Expense delete logic successfully",

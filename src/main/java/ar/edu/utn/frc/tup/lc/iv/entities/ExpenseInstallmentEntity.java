@@ -31,8 +31,5 @@ public class ExpenseInstallmentEntity extends AuditEntity {
     @Column(name = "installment_number", nullable = false)
     private Integer installmentNumber;
 
-    @Column(name = "enabled", nullable = false)
-    private Boolean enabled;
-
 
 }

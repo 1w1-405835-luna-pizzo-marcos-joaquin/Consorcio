@@ -24,4 +24,6 @@ public interface IExpenseService {
 
     DtoResponseExpense createCreditNoteForExpense(Integer id);
     List<ExpenseModel> getExpenseByPaymentDateRange(LocalDate startDate, LocalDate endDate);
+
+    ResponseEntity<DtoResponseExpense> putExpense(DtoRequestExpense request, MultipartFile file);
 }

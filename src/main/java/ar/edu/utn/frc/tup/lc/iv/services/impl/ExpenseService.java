@@ -7,6 +7,7 @@ import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import ar.edu.utn.frc.tup.lc.iv.dtos.common.*;
 import ar.edu.utn.frc.tup.lc.iv.dtos.fileManager.UuidResponseDto;
 import ar.edu.utn.frc.tup.lc.iv.dtos.owner.OwnerDto;
+import ar.edu.utn.frc.tup.lc.iv.entities.*;
 import ar.edu.utn.frc.tup.lc.iv.entities.BillExpenseInstallmentsEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseDistributionEntity;
 import ar.edu.utn.frc.tup.lc.iv.entities.ExpenseEntity;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -36,6 +38,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ExpenseService implements IExpenseService {
@@ -72,7 +75,7 @@ public class ExpenseService implements IExpenseService {
      */
     @Transactional
     public ResponseEntity<DtoResponseExpense> postExpense(DtoRequestExpense request, MultipartFile file) {
-        Boolean expenseValid = fetchValidExpenseModel(request, file);
+        Boolean expenseValid = fetchValidExpenseModel(request, file,true);
         if (expenseValid) {
             ExpenseModel expenseModel = setDataToExpenseModel(request);
             List<ExpenseInstallmentModel> expenseInstallmentModels = setExpenseInstallmentModels(request, expenseModel);
@@ -82,12 +85,13 @@ public class ExpenseService implements IExpenseService {
             }
             expenseModel.setInstallmentsList(expenseInstallmentModels);
             expenseModel.setDistributions(expenseDistributionModels);
-            if(file !=null){
+            if(file !=null && !file.isEmpty()){
                 ResponseEntity<UuidResponseDto> fileId = fileManagerRestClient.uploadFile(file, null, null);
                 expenseModel.setFileId(Objects.requireNonNull(fileId.getBody()).getUuid());
             }
+            expenseModel.setFileId(null);
             DtoResponseExpense dtoResponseExpense = setDtoResponseExpense(expenseModel);
-            saveExpenseEntity(expenseModel, expenseInstallmentModels, expenseDistributionModels);
+            saveExpenseEntity(expenseModel, expenseInstallmentModels, expenseDistributionModels,true);
             return ResponseEntity.ok(dtoResponseExpense);
         } else {
             throw new CustomException("The expense is not valid", HttpStatus.CONFLICT);
@@ -104,8 +108,115 @@ public class ExpenseService implements IExpenseService {
         }
         return result;
     }
+    @Transactional
+    public ResponseEntity<DtoResponseExpense> putExpense(DtoRequestExpense request, MultipartFile file) {
+    Boolean expenseValid = fetchValidExpenseModel(request, file, false);
+    if (expenseValid){
+        Optional<ExpenseEntity> existingExpenseOpt = expenseRepository.findById(request.getId());
+        if (existingExpenseOpt.isEmpty()){
+            throw new CustomException("Expense not found", HttpStatus.NOT_FOUND);
+        }
+        ExpenseEntity existingExpense = existingExpenseOpt.get();
+        ExpenseModel expenseModel = setDataToExpenseModel(request);
+        List<ExpenseInstallmentModel> newInstallments = setExpenseInstallmentModels(request, expenseModel);
+        List<ExpenseDistributionModel> newDistributions = new ArrayList<>();
+        if (ExpenseType.valueOf(request.getTypeExpense()).equals(ExpenseType.INDIVIDUAL)){
+            newDistributions = setExpenseDistributionModels(request);
+        }
+        if (file != null && !file.isEmpty()){
+            ResponseEntity<UuidResponseDto> fileId = fileManagerRestClient.uploadFile(file, null, null);
+            expenseModel.setFileId(Objects.requireNonNull(fileId.getBody()).getUuid());
+        } else {
+            expenseModel.setFileId(existingExpense.getFileId());
+        }
 
-    private void saveExpenseEntity(ExpenseModel expenseModel, List<ExpenseInstallmentModel> expenseInstallmentModels, List<ExpenseDistributionModel> expenseDistributionModels) {
+        expenseModel.setInstallmentsList(newInstallments);
+        expenseModel.setDistributions(newDistributions);
+        updateExpenseEntity(existingExpense, expenseModel, newInstallments, newDistributions);
+
+        DtoResponseExpense dtoResponseExpense = setDtoResponseExpense(expenseModel);
+        return ResponseEntity.ok(dtoResponseExpense);
+    } else {
+        throw new CustomException("The expense is not valid", HttpStatus.CONFLICT);
+    }
+    }
+
+    private void updateExpenseEntity(ExpenseEntity existingExpense, ExpenseModel expenseModel, List<ExpenseInstallmentModel> newInstallments, List<ExpenseDistributionModel> newDistributions){
+        existingExpense.setDescription(expenseModel.getDescription());
+        existingExpense.setExpenseDate(expenseModel.getExpenseDate());
+        existingExpense.setAmount(expenseModel.getAmount());
+        existingExpense.setExpenseType(expenseModel.getExpenseType());
+        existingExpense.setCategory(modelMapper.map(expenseModel.getCategory(), ExpenseCategoryEntity.class));
+        existingExpense.setFileId(expenseModel.getFileId());
+        existingExpense.setLastUpdatedDatetime(LocalDateTime.now());
+        existingExpense.setLastUpdatedUser(expenseModel.getLastUpdatedUser());
+
+        for (ExpenseDistributionEntity expenseDistributionEntity : existingExpense.getDistributions())
+        {
+                if (newDistributions.stream().noneMatch(m->m.getOwnerId().equals(expenseDistributionEntity.getOwnerId()))){
+                    expenseDistributionEntity.setEnabled(false);
+                    expenseDistributionEntity.setLastUpdatedUser(1);
+                }
+        }
+        for (ExpenseDistributionModel expenseDistributionModel : newDistributions){
+
+
+            ExpenseDistributionEntity expenseDistributionEntityToEdit=existingExpense.getDistributions()
+                    .stream().filter(m->m.getOwnerId()
+                            .equals(expenseDistributionModel.getOwnerId())).findFirst().orElse(null);
+
+            if (expenseDistributionEntityToEdit==null){
+                //nueva distribution
+                ExpenseDistributionEntity expenseDistributionEntity = new ExpenseDistributionEntity();
+                expenseDistributionEntity.setProportion(expenseDistributionModel.getProportion());
+                expenseDistributionEntity.setOwnerId(expenseDistributionModel.getOwnerId());
+                expenseDistributionEntity.setCreatedUser(1);
+                expenseDistributionEntity.setExpense(existingExpense);
+                expenseDistributionEntity.setLastUpdatedUser(1);
+                existingExpense.getDistributions().add(expenseDistributionEntity);
+            }
+            else{
+                expenseDistributionEntityToEdit.setProportion(expenseDistributionModel.getProportion());
+                expenseDistributionEntityToEdit.setLastUpdatedUser(1);
+                expenseDistributionEntityToEdit.setExpense(true);
+            }
+        }
+
+
+        existingExpense.getInstallmentsList().removeIf(m->m.getEnabled().equals(false));
+        int sizeExistingInstallments = existingExpense.getInstallmentsList().size();
+        int sizeNewInstallments = expenseModel.getInstallmentsList().size();
+        if (sizeNewInstallments!=sizeExistingInstallments){
+            if (sizeNewInstallments>sizeExistingInstallments){
+                LocalDate maxDate = existingExpense
+                        .getInstallmentsList()
+                        .stream()
+                        .max(Comparator.comparing(ExpenseInstallmentEntity::getPaymentDate)).get().getPaymentDate();
+                for (int i = sizeExistingInstallments; i < sizeNewInstallments; i++) {
+                    maxDate = maxDate.plusMonths(1);
+                    ExpenseInstallmentEntity expenseInstallmentEntity = new ExpenseInstallmentEntity();
+                    expenseInstallmentEntity.setInstallmentNumber(i+1);
+                    expenseInstallmentEntity.setPaymentDate(maxDate);
+                    expenseInstallmentEntity.setCreatedUser(1);
+                    expenseInstallmentEntity.setLastUpdatedUser(1);
+                    expenseInstallmentEntity.setExpense(existingExpense);
+                    existingExpense.getInstallmentsList().add(expenseInstallmentEntity);
+                }
+            }
+            else {
+                existingExpense.getInstallmentsList().sort(Comparator.comparing(ExpenseInstallmentEntity::getPaymentDate));
+                for (int i = sizeNewInstallments; i < sizeExistingInstallments; i++) {
+                    ExpenseInstallmentEntity expenseInstallmentEntity = existingExpense.getInstallmentsList().get(i);
+                    expenseInstallmentEntity.setExpense(false);
+                }
+            }
+        }
+        existingExpense.setInstallments(expenseModel.getInstallments());
+        //Guardar la entidad principal actualizada
+        expenseRepository.save(existingExpense);
+    }
+
+    private void saveExpenseEntity(ExpenseModel expenseModel, List<ExpenseInstallmentModel> expenseInstallmentModels, List<ExpenseDistributionModel> expenseDistributionModels, Boolean isNew) {
         ExpenseEntity expenseEntity = modelMapper.map(expenseModel, ExpenseEntity.class);
         expenseEntity.setDistributions(new ArrayList<>());
         expenseEntity.setInstallmentsList(new ArrayList<>());
@@ -262,10 +373,22 @@ public class ExpenseService implements IExpenseService {
      * @return true if the expense is valid, false otherwise.
      * @throws CustomException for various validation errors.
      */
-    private Boolean fetchValidExpenseModel(DtoRequestExpense request,MultipartFile file) {
-        Optional<ExpenseEntity> expenseEntityValidateExist =  expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(request.getInvoiceNumber(), request.getProviderId());
-        if (expenseEntityValidateExist.isPresent()) {
-            throw new CustomException("The expense have already exist", HttpStatus.BAD_REQUEST);
+    private Boolean fetchValidExpenseModel(DtoRequestExpense request,MultipartFile file, Boolean isNew) {
+        if (isNew)
+        {
+            Optional<ExpenseEntity> expenseEntityValidateExist = expenseRepository.findFirstByInvoiceNumberAndProviderId(request.getInvoiceNumber(), request.getProviderId());
+            if (expenseEntityValidateExist.isPresent()){
+                throw new CustomException("The expense have already exist", HttpStatus.BAD_REQUEST);
+            }
+
+        }
+        if (!isNew)
+        {
+            Optional<ExpenseEntity> expenseEntityOptional = expenseRepository.findById(request.getId());
+            if (expenseEntityOptional.isEmpty())
+            {
+                throw new CustomException("The expense not exist", HttpStatus.BAD_REQUEST);
+            }
         }
         ExpenseCategoryModel expenseCategoryModel = expenseCategoryService.getCategoryModel(request.getCategoryId());
         if (expenseCategoryModel == null) {
@@ -443,6 +566,7 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
 
     // Set basic expense information
     dtoExpenseQuery.setExpenseDate(expenseEntity.getExpenseDate());
+    dtoExpenseQuery.setDescription(expenseEntity.getDescription());
     dtoExpenseQuery.setFileId(expenseEntity.getFileId() != null ? expenseEntity.getFileId().toString() : null);
     dtoExpenseQuery.setCategory(expenseEntity.getCategory().getDescription());
     dtoExpenseQuery.setDistributionList(new ArrayList<>());
