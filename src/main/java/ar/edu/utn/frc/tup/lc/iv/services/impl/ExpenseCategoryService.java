@@ -96,13 +96,58 @@ public class ExpenseCategoryService implements IExpenseCategoryService {
         return dtoCategories;
     }
 
-    public DtoResponseDeleteExpense deteleCategory(Integer id) {
-        return null;
+    private void performLogicalDeletion(ExpenseCategoryEntity expenseCategoryEntity) {
+        expenseCategoryEntity.setEnabled(Boolean.FALSE);
+        expenseCategoryRepository.save(expenseCategoryEntity);
     }
+    @Override
+    public DtoResponseDeleteExpense deteleCategory(Integer id) {
+        Optional<ExpenseCategoryEntity> expenseCategoryEntityOptional = expenseCategoryRepository.findById(id);
+        if (expenseCategoryEntityOptional.isEmpty()) {
+            throw new CustomException("The category does not exist", HttpStatus.BAD_REQUEST);
+        }
 
+        ExpenseCategoryEntity expenseCategoryEntity = expenseCategoryEntityOptional.get();
 
+        performLogicalDeletion(expenseCategoryEntity);
+        DtoResponseDeleteExpense dtoResponseDeleteExpense = new DtoResponseDeleteExpense();
+        dtoResponseDeleteExpense.setExpense(expenseCategoryEntity.getDescription());
+        dtoResponseDeleteExpense.setHttpStatus(HttpStatus.OK);
+        dtoResponseDeleteExpense.setDescriptionResponse("Category delete logic successfully");
+        return dtoResponseDeleteExpense;
+
+    }
+    @Override
     public ExpenseCategoryDTO putCategory(Integer id, String description) {
-        return null;
+
+        Optional<ExpenseCategoryEntity> existingCategory = expenseCategoryRepository.findByDescription(description);
+
+        Optional<ExpenseCategoryEntity> expenseCategoryEntityOptional = expenseCategoryRepository.findById(id);
+
+
+        if (expenseCategoryEntityOptional.isEmpty()) {
+            throw new CustomException("The category does not exist", HttpStatus.BAD_REQUEST);
+        }
+
+        ExpenseCategoryEntity expenseCategoryEntity = expenseCategoryEntityOptional.get();
+
+        if (existingCategory.isPresent() && !existingCategory.get().getId().equals(id)) {
+
+            if (existingCategory.get().getEnabled()) {
+                throw new CustomException("A category with this description already exists", HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        expenseCategoryEntity.setDescription(description);
+        expenseCategoryEntity.setLastUpdatedDatetime(LocalDateTime.now());
+
+        expenseCategoryRepository.save(expenseCategoryEntity);
+
+        ExpenseCategoryDTO expenseCategoryDTO = new ExpenseCategoryDTO();
+        expenseCategoryDTO.setDescription(description);
+        expenseCategoryDTO.setId(expenseCategoryEntity.getId());
+
+        return expenseCategoryDTO;
     }
 
 }

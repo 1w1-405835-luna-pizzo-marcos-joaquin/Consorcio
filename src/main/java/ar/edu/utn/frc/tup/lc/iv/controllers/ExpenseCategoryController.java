@@ -27,12 +27,12 @@ public class ExpenseCategoryController {
         return ResponseEntity.ok(expenseCategoryService.postCategory(description));
     }
     @DeleteMapping("/deleteById")
-    public DtoResponseDeleteExpense deleteExpenseCategory(Integer id) {
-        return expenseCategoryService.deteleCategory(id);
+    public ResponseEntity<DtoResponseDeleteExpense> deleteExpenseCategory(Integer id) {
+        return  ResponseEntity.ok(expenseCategoryService.deteleCategory(id));
     }
     @PutMapping("/putById")
-    public ExpenseCategoryDTO PutExpenseCategory(Integer id, String description){
-        return expenseCategoryService.putCategory(id,description);
+    public ResponseEntity<ExpenseCategoryDTO> PutExpenseCategory(Integer id, String description){
+        return ResponseEntity.ok(expenseCategoryService.putCategory(id,description));
     }
     /**
      * Retrieves all available categories.
