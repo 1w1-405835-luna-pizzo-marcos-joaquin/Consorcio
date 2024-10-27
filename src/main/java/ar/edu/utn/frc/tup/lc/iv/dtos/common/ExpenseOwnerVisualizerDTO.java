@@ -18,7 +18,7 @@ public class ExpenseOwnerVisualizerDTO {
     private Integer providerId;
     private LocalDate expenseDate;
     private UUID fileId;
-    private Integer invoiceNumber;
+    private String invoiceNumber;
     private ExpenseType expenseType;
     private ExpenseCategoryDTO category;
     private BigDecimal amount;

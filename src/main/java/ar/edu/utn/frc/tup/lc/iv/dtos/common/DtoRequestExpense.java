@@ -11,7 +11,7 @@ public class DtoRequestExpense {
     private String description;
     private Integer providerId;
     private LocalDate expenseDate;
-    private Integer invoiceNumber;
+    private String invoiceNumber;
     private String typeExpense;
     private Integer categoryId;
     private BigDecimal amount;

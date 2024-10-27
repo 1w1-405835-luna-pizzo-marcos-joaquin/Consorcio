@@ -37,8 +37,8 @@ public class ExpenseEntity extends AuditEntity {
     @Column(name = "file_id", nullable = false)
     private UUID fileId;
 
-    @Column(name = "invoice_number")
-    private Integer invoiceNumber;
+    @Column(name = "invoice_number",length = 50)
+    private String invoiceNumber;
 
     @Column(name = "expense_type", nullable = false)
     @Enumerated(EnumType.STRING)

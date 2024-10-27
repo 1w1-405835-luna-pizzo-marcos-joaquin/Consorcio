@@ -18,7 +18,7 @@ public class DtoResponseExpense {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate expenseDate;
     private UUID fileId;
-    private Integer invoiceNumber;
+    private String invoiceNumber;
     private ExpenseType expenseType;
     private DtoCategory dtoCategory;
     private List<DtoDistribution> dtoDistributionList;

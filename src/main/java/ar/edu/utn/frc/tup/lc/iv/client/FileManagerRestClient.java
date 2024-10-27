@@ -3,6 +3,7 @@ package ar.edu.utn.frc.tup.lc.iv.client;
 import ar.edu.utn.frc.tup.lc.iv.controllers.manageExceptions.CustomException;
 import ar.edu.utn.frc.tup.lc.iv.dtos.fileManager.FileResponseDto;
 import ar.edu.utn.frc.tup.lc.iv.dtos.fileManager.UuidResponseDto;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -21,8 +22,8 @@ import java.util.UUID;
 @Service
 public class FileManagerRestClient {
     private final RestTemplate restTemplate;
-    //TODO Ajustar url
-    private static final String ROOT_URL = "http://localhost:8085/fileManager";
+    @Value("${app.api-filemanager}")
+    private String ROOT_URL;
 
     public FileManagerRestClient(RestTemplate restTemplateParam) {
         this.restTemplate = restTemplateParam;

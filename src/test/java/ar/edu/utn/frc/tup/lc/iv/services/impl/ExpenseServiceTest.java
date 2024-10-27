@@ -68,7 +68,7 @@ class ExpenseServiceTest {
         categoryModel.setId(1);
         when(expenseCategoryService.getCategoryModel(anyInt())).thenReturn(categoryModel);
 
-        when(expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(anyInt(), anyInt()))
+        when(expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(anyString(), anyInt()))
                 .thenReturn(Optional.empty());
 
         ExpenseEntity validExpenseEntity = new ExpenseEntity();
@@ -77,7 +77,7 @@ class ExpenseServiceTest {
         validExpenseEntity.setDescription("Test Expense");
         validExpenseEntity.setExpenseDate(LocalDate.now());
         validExpenseEntity.setExpenseType(ExpenseType.COMUN);
-        validExpenseEntity.setInvoiceNumber(909090);
+        validExpenseEntity.setInvoiceNumber("909090");
         validExpenseEntity.setProviderId(1);
 
         when(modelMapper.map(any(ExpenseModel.class), eq(ExpenseEntity.class))).thenReturn(validExpenseEntity);
@@ -103,7 +103,7 @@ class ExpenseServiceTest {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn("image/jpeg");
 
-        when(expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(anyInt(), anyInt()))
+        when(expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(anyString(), anyInt()))
                 .thenReturn(Optional.of(new ExpenseEntity()));
 
         CustomException exception = assertThrows(CustomException.class, () -> {
@@ -120,7 +120,7 @@ class ExpenseServiceTest {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn("image/jpeg");
 
-        when(expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(anyInt(), anyInt()))
+        when(expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(anyString(), anyInt()))
                 .thenReturn(Optional.empty());
 
         when(expenseCategoryService.getCategoryModel(anyInt())).thenReturn(null);
@@ -139,7 +139,7 @@ class ExpenseServiceTest {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn("application/octet-stream");
 
-        when(expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(anyInt(), anyInt()))
+        when(expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(anyString(), anyInt()))
                 .thenReturn(Optional.empty());
 
         ExpenseCategoryModel categoryModel = new ExpenseCategoryModel();
@@ -162,7 +162,7 @@ class ExpenseServiceTest {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn("image/jpeg");
 
-        when(expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(anyInt(), anyInt()))
+        when(expenseRepository.findExpenseEntitiesByInvoiceNumberAndProviderId(anyString(), anyInt()))
                 .thenReturn(Optional.empty());
 
         ExpenseCategoryModel categoryModel = new ExpenseCategoryModel();
@@ -181,7 +181,7 @@ class ExpenseServiceTest {
         request.setDescription("Test Expense");
         request.setProviderId(1);
         request.setExpenseDate(LocalDate.now());
-        request.setInvoiceNumber(9243);
+        request.setInvoiceNumber("9243");
         request.setTypeExpense("COMUN");
         request.setCategoryId(1);
         request.setAmount(new BigDecimal("100.00"));

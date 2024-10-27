@@ -62,7 +62,7 @@ class ExpenseControllerTest {
         responseExpense.setProviderId(1);
         responseExpense.setExpenseDate(LocalDate.of(2024, 10, 9));
         responseExpense.setFileId(UUID.randomUUID());
-        responseExpense.setInvoiceNumber(12345);
+        responseExpense.setInvoiceNumber("12345");
         responseExpense.setExpenseType(ExpenseType.COMUN);
         responseExpense.setDtoCategory(new DtoCategory());
         responseExpense.setDtoDistributionList(Arrays.asList(new DtoDistribution()));
@@ -125,7 +125,7 @@ class ExpenseControllerTest {
         responseExpense.setDescription("Test Expense Without File");
         responseExpense.setProviderId(2);
         responseExpense.setExpenseDate(LocalDate.of(2024, 10, 10));
-        responseExpense.setInvoiceNumber(54321);
+        responseExpense.setInvoiceNumber("54321");
         responseExpense.setExpenseType(ExpenseType.EXTRAORDINARIO);
         responseExpense.setDtoCategory(new DtoCategory());
         responseExpense.setDtoDistributionList(Arrays.asList(new DtoDistribution()));

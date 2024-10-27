@@ -21,7 +21,7 @@ public class ExpenseModel {
     private Integer providerId;
     private LocalDate expenseDate;
     private UUID fileId;
-    private Integer invoiceNumber;
+    private String invoiceNumber;
     private ExpenseType expenseType;
     private ExpenseCategoryModel category;
     private BigDecimal amount;

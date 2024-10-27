@@ -30,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -81,8 +82,10 @@ public class ExpenseService implements IExpenseService {
             }
             expenseModel.setInstallmentsList(expenseInstallmentModels);
             expenseModel.setDistributions(expenseDistributionModels);
-            ResponseEntity<UuidResponseDto> fileId = fileManagerRestClient.uploadFile(file, null, null);
-            expenseModel.setFileId(Objects.requireNonNull(fileId.getBody()).getUuid());
+            if(file !=null){
+                ResponseEntity<UuidResponseDto> fileId = fileManagerRestClient.uploadFile(file, null, null);
+                expenseModel.setFileId(Objects.requireNonNull(fileId.getBody()).getUuid());
+            }
             DtoResponseExpense dtoResponseExpense = setDtoResponseExpense(expenseModel);
             saveExpenseEntity(expenseModel, expenseInstallmentModels, expenseDistributionModels);
             return ResponseEntity.ok(dtoResponseExpense);
@@ -472,15 +475,12 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
 }
     private DtoExpenseQuery mapModelToDtoExpense(ExpenseModel expenseModel, List<OwnerDto> ownerDtos) {
         DtoExpenseQuery dtoExpenseQuery = new DtoExpenseQuery();
-
-        try {
-            dtoExpenseQuery = modelMapper.map(expenseModel, DtoExpenseQuery.class);
-        } catch (Exception e) {
-            // Maneja la excepción del ModelMapper
-            System.err.println("Error al mapear el modelo a DTO: " + e.getMessage());
-            // Puedes continuar el mapeo sin problema
-        }
-
+        dtoExpenseQuery.setId(expenseModel.getId());
+        dtoExpenseQuery.setAmount(expenseModel.getAmount());
+        dtoExpenseQuery.setExpenseType(expenseModel.getExpenseType().name());
+        dtoExpenseQuery.setExpenseDate(expenseModel.getExpenseDate());
+        dtoExpenseQuery.setFileId(expenseModel.getFileId() != null ? expenseModel.getFileId().toString() : null);
+        dtoExpenseQuery.setCategory(expenseModel.getCategory() != null ? expenseModel.getCategory().getDescription() : "Unknown");
         // Set provider information
         try {
             if (expenseModel.getProviderId() != null) {
@@ -492,16 +492,6 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
             System.err.println("Error al obtener el proveedor: " + e.getMessage());
         }
 
-        // Set basic expense information
-        dtoExpenseQuery.setExpenseDate(expenseModel.getExpenseDate());
-        dtoExpenseQuery.setFileId(expenseModel.getFileId() != null ? expenseModel.getFileId().toString() : null);
-
-        // Validate category and set it
-        try {
-            dtoExpenseQuery.setCategory(expenseModel.getCategory() != null ? expenseModel.getCategory().getDescription() : "Unknown");
-        } catch (Exception e) {
-            System.err.println("Error al mapear la categoría: " + e.getMessage());
-        }
 
         dtoExpenseQuery.setDistributionList(new ArrayList<>());
         dtoExpenseQuery.setInstallmentList(new ArrayList<>());
@@ -522,7 +512,7 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
                     // Calcular el monto
                     BigDecimal amount = BigDecimal.ZERO;
                     if (expenseModel.getAmount() != null && distributionModel.getProportion() != null) {
-                        amount = expenseModel.getAmount().multiply(distributionModel.getProportion());
+                        amount = expenseModel.getAmount().multiply(distributionModel.getProportion()).setScale(2, RoundingMode.HALF_UP);
                     }
 
                     DtoExpenseDistributionQuery dtoExpenseDistributionQuery = new DtoExpenseDistributionQuery();

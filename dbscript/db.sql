@@ -15,7 +15,7 @@ CREATE TABLE expenses (
 	provider_id INT,
 	expense_date DATE not null,
 	file_id BINARY(16), -- UUID in MySQL as BINARY(16)
-	invoice_number INT,
+	invoice_number varchar(50),
 	expense_type VARCHAR(30) not null,
 	expense_category_id INT not null,
 	amount DECIMAL(11,2) not null,
@@ -76,7 +76,7 @@ CREATE TABLE expenses_audit (
 	provider_id INT,
 	expense_date DATE NOT NULL,
 	file_id BINARY(16), -- UUID in MySQL as BINARY(16)
-	invoice_number INT,
+	invoice_number varchar(50),
 	expense_type VARCHAR(30) NOT NULL,
 	expense_category_id INT NOT NULL,
 	amount DECIMAL(11,2) NOT NULL,
