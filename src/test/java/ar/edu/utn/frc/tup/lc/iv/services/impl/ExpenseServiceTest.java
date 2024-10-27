@@ -68,7 +68,7 @@ class ExpenseServiceTest {
         categoryModel.setId(1);
         when(expenseCategoryService.getCategoryModel(anyInt())).thenReturn(categoryModel);
 
-        when(expenseRepository.findFirstByInvoiceNumberAndProviderId(anyInt(), anyInt()))
+        when(expenseRepository.findFirstByInvoiceNumberAndProviderId(anyString(), anyInt()))
                 .thenReturn(Optional.empty());
 
         ExpenseEntity validExpenseEntity = new ExpenseEntity();
@@ -103,7 +103,7 @@ class ExpenseServiceTest {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn("image/jpeg");
 
-        when(expenseRepository.findFirstByInvoiceNumberAndProviderId(anyInt(), anyInt()))
+        when(expenseRepository.findFirstByInvoiceNumberAndProviderId(anyString(), anyInt()))
                 .thenReturn(Optional.of(new ExpenseEntity()));
 
         CustomException exception = assertThrows(CustomException.class, () -> {
@@ -120,7 +120,7 @@ class ExpenseServiceTest {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn("image/jpeg");
 
-        when(expenseRepository.findFirstByInvoiceNumberAndProviderId(anyInt(), anyInt()))
+        when(expenseRepository.findFirstByInvoiceNumberAndProviderId(anyString(), anyInt()))
                 .thenReturn(Optional.empty());
 
         when(expenseCategoryService.getCategoryModel(anyInt())).thenReturn(null);
@@ -139,7 +139,7 @@ class ExpenseServiceTest {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn("application/octet-stream");
 
-        when(expenseRepository.findFirstByInvoiceNumberAndProviderId(anyInt(), anyInt()))
+        when(expenseRepository.findFirstByInvoiceNumberAndProviderId(anyString(), anyInt()))
                 .thenReturn(Optional.empty());
 
         ExpenseCategoryModel categoryModel = new ExpenseCategoryModel();
@@ -162,7 +162,7 @@ class ExpenseServiceTest {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn("image/jpeg");
 
-        when(expenseRepository.findFirstByInvoiceNumberAndProviderId(anyInt(), anyInt()))
+        when(expenseRepository.findFirstByInvoiceNumberAndProviderId(anyString(), anyInt()))
                 .thenReturn(Optional.empty());
 
         ExpenseCategoryModel categoryModel = new ExpenseCategoryModel();

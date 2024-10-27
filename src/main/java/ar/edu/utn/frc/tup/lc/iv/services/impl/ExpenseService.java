@@ -109,7 +109,7 @@ public class ExpenseService implements IExpenseService {
         return result;
     }
     @Transactional
-    public ResponseEntity<DtoResponseExpense> putExpense(DtoRequestExpense request, MultipartFile file) {
+    public DtoResponseExpense putExpense(DtoRequestExpense request, MultipartFile file) {
     Boolean expenseValid = fetchValidExpenseModel(request, file, false);
     if (expenseValid){
         Optional<ExpenseEntity> existingExpenseOpt = expenseRepository.findById(request.getId());
@@ -135,7 +135,7 @@ public class ExpenseService implements IExpenseService {
         updateExpenseEntity(existingExpense, expenseModel, newInstallments, newDistributions);
 
         DtoResponseExpense dtoResponseExpense = setDtoResponseExpense(expenseModel);
-        return ResponseEntity.ok(dtoResponseExpense);
+        return dtoResponseExpense;
     } else {
         throw new CustomException("The expense is not valid", HttpStatus.CONFLICT);
     }
@@ -178,7 +178,7 @@ public class ExpenseService implements IExpenseService {
             else{
                 expenseDistributionEntityToEdit.setProportion(expenseDistributionModel.getProportion());
                 expenseDistributionEntityToEdit.setLastUpdatedUser(1);
-                expenseDistributionEntityToEdit.setExpense(true);
+                expenseDistributionEntityToEdit.setEnabled(true);
             }
         }
 
@@ -207,7 +207,7 @@ public class ExpenseService implements IExpenseService {
                 existingExpense.getInstallmentsList().sort(Comparator.comparing(ExpenseInstallmentEntity::getPaymentDate));
                 for (int i = sizeNewInstallments; i < sizeExistingInstallments; i++) {
                     ExpenseInstallmentEntity expenseInstallmentEntity = existingExpense.getInstallmentsList().get(i);
-                    expenseInstallmentEntity.setExpense(false);
+                    expenseInstallmentEntity.setExpense(existingExpense);
                 }
             }
         }

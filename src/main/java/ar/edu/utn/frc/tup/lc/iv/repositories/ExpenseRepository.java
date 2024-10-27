@@ -14,7 +14,7 @@ import java.util.Optional;
 @Repository
 public interface ExpenseRepository extends JpaRepository<ExpenseEntity,Integer> {
 
-    Optional<ExpenseEntity> findFirstByInvoiceNumberAndProviderId(Integer  invoiceNumber,Integer providerId);
+    Optional<ExpenseEntity> findFirstByInvoiceNumberAndProviderId(String  invoiceNumber,Integer providerId);
     @Query("select e from ExpenseEntity e join e.installmentsList i where i.paymentDate between :from and :to and e.enabled")
     List<ExpenseEntity> findAllByPaymentDate(@Param("from") LocalDate from, @Param("to") LocalDate to);
     /**
