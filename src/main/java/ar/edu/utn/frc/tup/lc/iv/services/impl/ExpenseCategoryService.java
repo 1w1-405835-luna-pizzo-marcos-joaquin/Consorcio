@@ -118,6 +118,30 @@ public class ExpenseCategoryService implements IExpenseCategoryService {
 
     }
     @Override
+    public DtoCategory enableCategory(Integer id) {
+        Optional<ExpenseCategoryEntity> expenseCategoryEntityOptional = expenseCategoryRepository.findById(id);
+        if (expenseCategoryEntityOptional.isEmpty()){
+            throw new CustomException("The category does not exist", HttpStatus.BAD_REQUEST);
+        }
+        ExpenseCategoryEntity expenseCategoryEntity = expenseCategoryEntityOptional.get();
+
+        expenseCategoryEntity.setEnabled(true);
+        expenseCategoryEntity.setLastUpdatedUser(CREATE_USER);
+        expenseCategoryEntity.setLastUpdatedDatetime(LocalDateTime.now());
+        expenseCategoryRepository.save(expenseCategoryEntity);
+        DtoCategory dtoCategory = new DtoCategory();
+        dtoCategory.setId(expenseCategoryEntity.getId());
+        dtoCategory.setDescription(expenseCategoryEntity.getDescription());
+        dtoCategory.setLastUpdatedDatetime(expenseCategoryEntity.getLastUpdatedDatetime());
+        if (expenseCategoryEntity.getEnabled().equals(true)){
+            dtoCategory.setState("Activo");
+        }else{
+            dtoCategory.setState("Error, Inactivo");
+        }
+
+        return dtoCategory;
+    }
+    @Override
     public ExpenseCategoryDTO putCategory(Integer id, String description) {
 
         Optional<ExpenseCategoryEntity> existingCategory = expenseCategoryRepository.findByDescription(description);

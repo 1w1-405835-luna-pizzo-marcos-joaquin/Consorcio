@@ -43,4 +43,8 @@ public class ExpenseCategoryController {
     public ResponseEntity<List<DtoCategory>>  getAllCategories() {
         return ResponseEntity.ok( expenseCategoryService.getAllCategories());
     }
+    @PutMapping("/setEnabled")
+    public ResponseEntity<DtoCategory> setEnabled(Integer id){
+        return ResponseEntity.ok(expenseCategoryService.enableCategory(id));
+    }
 }

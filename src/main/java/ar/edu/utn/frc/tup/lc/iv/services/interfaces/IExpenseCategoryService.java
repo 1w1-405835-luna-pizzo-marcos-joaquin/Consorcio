@@ -17,4 +17,5 @@ public interface IExpenseCategoryService {
     DtoResponseDeleteExpense deteleCategory(Integer id);
 
     ExpenseCategoryDTO putCategory(Integer id, String description);
+    DtoCategory enableCategory(Integer id);
 }
