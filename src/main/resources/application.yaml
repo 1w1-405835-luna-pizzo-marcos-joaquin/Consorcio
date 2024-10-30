@@ -1,0 +1,51 @@
+server:
+  port: "8080"
+app:
+  name: Expenses
+  desc: Demo expense
+  version: 1.0.0
+  url: http://localhost:8080
+  dev-name: Grupo7
+  dev-email: "-"
+  api-owner: ${API-OWNER:https://my-json-server.typicode.com/EbeltramoUtn/demoTP}
+  api-provider: ${API-PROVIDER:https://my-json-server.typicode.com/EbeltramoUtn/demoTP}
+  api-sanction: ${API-SANCTION:https://my-json-server.typicode.com/EbeltramoUtn/demoTP}
+  api-filemanager: ${API-FILEMANAGER:http://localhost:8081/fileManager}
+
+spring:
+  application:
+    name: expenses-manager
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/dbexpense}
+    username: gastos
+    password: 123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          batch_size: 50
+          batch_versioned_data: true
+        order_updates: true
+        order_inserts: true
+    show-sql: true
+    defer-datasource-initialization: true
+
+springdoc:
+  api-docs:
+    path: /docs
+    enabled: true
+  swagger-ui:
+    disable-swagger-default-url: true
+    path: /docs-ui
+    enabled: true
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.jdbc.core: TRACE
