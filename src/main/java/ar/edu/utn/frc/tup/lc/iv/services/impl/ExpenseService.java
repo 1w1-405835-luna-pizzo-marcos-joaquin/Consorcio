@@ -209,9 +209,17 @@ public class ExpenseService implements IExpenseService {
             }
             else {
                 existingExpense.getInstallmentsList().sort(Comparator.comparing(ExpenseInstallmentEntity::getPaymentDate));
-                for (int i = sizeNewInstallments; i < sizeExistingInstallments; i++) {
-                    ExpenseInstallmentEntity expenseInstallmentEntity = existingExpense.getInstallmentsList().get(i);
-                    expenseInstallmentEntity.setExpense(existingExpense);
+//                for (int i = sizeNewInstallments; i < sizeExistingInstallments; i++) {
+//                    ExpenseInstallmentEntity expenseInstallmentEntity = existingExpense.getInstallmentsList().get(i);
+//                    expenseInstallmentEntity.setExpense(existingExpense);
+//                }
+                int count = 1;
+                for (ExpenseInstallmentEntity expenseInstallmentEntity : existingExpense.getInstallmentsList()) {
+                    if(count>expenseModel.getInstallments()){
+                        expenseInstallmentEntity.setEnabled(false);
+                    }
+                    count++;
+
                 }
             }
         }
@@ -579,6 +587,7 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
 
     // Map distributions
     for (ExpenseDistributionEntity distributionEntity : expenseEntity.getDistributions()) {
+        //TODO optimizar esto, buscar una sola vez la lista de clientes a la API y luego filtrar aca
         String ownerName = ownerRestClient.getOwnerFullName(distributionEntity.getOwnerId());
         BigDecimal amount = expenseEntity.getAmount().multiply(distributionEntity.getProportion());
 
@@ -592,7 +601,7 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
     }
 
     // Map installments
-    for (ExpenseInstallmentEntity installmentEntity : expenseEntity.getInstallmentsList()) {
+    for (ExpenseInstallmentEntity installmentEntity : expenseEntity.getInstallmentsList().stream().filter(ExpenseInstallmentEntity::getEnabled).toList()) {
         DtoExpenseInstallment dtoExpenseInstallment = new DtoExpenseInstallment();
         dtoExpenseInstallment.setInstallmentNumber(installmentEntity.getInstallmentNumber());
         dtoExpenseInstallment.setPaymentDate(installmentEntity.getPaymentDate());
