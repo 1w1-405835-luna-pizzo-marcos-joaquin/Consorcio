@@ -24,7 +24,9 @@ public class DtoExpenseQuery {
     private int id;
     private String description;
     private String category;
+    private Integer categoryId;
     private String provider;
+    private Integer providerId;
     private BigDecimal amount;
     private String expenseType;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")

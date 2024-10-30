@@ -150,6 +150,10 @@ public class ExpenseService implements IExpenseService {
         existingExpense.setFileId(expenseModel.getFileId());
         existingExpense.setLastUpdatedDatetime(LocalDateTime.now());
         existingExpense.setLastUpdatedUser(expenseModel.getLastUpdatedUser());
+        //provider mising set
+        existingExpense.setProviderId(expenseModel.getProviderId());
+        //invoicenumber mising set
+        existingExpense.setInvoiceNumber(expenseModel.getInvoiceNumber());
 
         for (ExpenseDistributionEntity expenseDistributionEntity : existingExpense.getDistributions())
         {
@@ -569,6 +573,7 @@ private DtoExpenseQuery mapEntityToDtoExpense(ExpenseEntity expenseEntity) {
     dtoExpenseQuery.setDescription(expenseEntity.getDescription());
     dtoExpenseQuery.setFileId(expenseEntity.getFileId() != null ? expenseEntity.getFileId().toString() : null);
     dtoExpenseQuery.setCategory(expenseEntity.getCategory().getDescription());
+    dtoExpenseQuery.setCategoryId(expenseEntity.getCategory().getId());
     dtoExpenseQuery.setDistributionList(new ArrayList<>());
     dtoExpenseQuery.setInstallmentList(new ArrayList<>());
 
